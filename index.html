@@ -3,29 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Московский Утренний Бег | Встреча</title>
-    <!-- PWA manifest (встроенный) -->
+    <title>Московский Утренний Бег</title>
     <link rel="manifest" href="data:application/manifest+json,{
         %22name%22:%22Московский Утренний Бег%22,
         %22short_name%22:%22MoscowRun%22,
         %22start_url%22:%22.%22,
         %22display%22:%22standalone%22,
         %22background_color%22:%22%23f5f7fe%22,
-        %22theme_color%22:%22%232c7da0%22,
-        %22icons%22:[
-            {%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%232c7da0'/%3E%3Ctext x='50' y='67' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E🏃%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22any%22,%22type%22:%22image/svg+xml%22%7D
-        ]
+        %22theme_color%22:%22%232c7da0%22
     }">
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});
-            if (!window._swRegistered) {
-                const swCode = `self.addEventListener('fetch', event => { event.respondWith(fetch(event.request)); });`;
-                const blob = new Blob([swCode], {type: 'application/javascript'});
-                const url = URL.createObjectURL(blob);
-                navigator.serviceWorker.register(url).then(() => console.log('SW регистрация успешна'));
-                window._swRegistered = true;
-            }
         }
     </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -37,7 +26,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { height: 100vh; width: 100%; overflow: hidden; background: #f5f7fe; }
         #map { height: 100%; width: 100%; z-index: 1; }
-        /* Верхняя панель */
         .app-header {
             position: absolute; top: 16px; left: 16px; right: 16px; z-index: 20;
             background: rgba(255,255,255,0.85); backdrop-filter: blur(12px);
@@ -51,7 +39,6 @@
         .logo-area p { font-size: 0.7rem; font-weight: 500; color: #4a627a; margin-top: 2px; }
         .weather-badge { background: rgba(0,0,0,0.05); border-radius: 40px; padding: 6px 14px; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 500; color: #1f3b4c; }
         .weather-badge i { font-size: 1.2rem; color: #f4b942; }
-        /* Карусель маршрутов */
         .routes-carousel { position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 20; overflow-x: auto; white-space: nowrap; padding-bottom: 6px; scrollbar-width: thin; pointer-events: auto; }
         .routes-container { display: inline-flex; gap: 12px; padding: 4px 2px; }
         .route-card { background: rgba(255,255,255,0.96); backdrop-filter: blur(6px); border-radius: 24px; width: 240px; padding: 12px 14px; box-shadow: 0 6px 14px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s; display: inline-block; vertical-align: top; white-space: normal; border-left: 3px solid transparent; }
@@ -61,98 +48,66 @@
         .route-stats { display: flex; gap: 12px; margin: 8px 0 4px; font-size: 0.7rem; color: #2c3e4e; }
         .route-desc { font-size: 0.65rem; color: #4b6e8a; display: flex; gap: 5px; align-items: center; }
         .btn-start { margin-top: 6px; font-size: 0.65rem; text-align: right; color: #ff7a3c; }
-        /* Панель бега (перетаскиваемая) — увеличенный шрифт */
         .run-panel { position: absolute; bottom: 12px; left: 12px; z-index: 30; background: rgba(0,0,0,0.85); backdrop-filter: blur(16px); border-radius: 28px; padding: 14px 18px; width: 230px; color: white; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 8px 20px rgba(0,0,0,0.3); pointer-events: auto; font-size: 0.9rem; user-select: none; }
         .run-panel.collapsed { width: auto; padding: 8px 12px; background: rgba(0,0,0,0.7); }
         .run-panel.collapsed .stats-row, .run-panel.collapsed .run-buttons, .run-panel.collapsed .record-status, .run-panel.collapsed #runStatusIcon { display: none; }
-        .run-panel.collapsed .panel-header { margin-bottom: 0; }
         .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: grab; font-size: 0.95rem; font-weight: 600; }
-        .panel-header:active { cursor: grabbing; }
         .stats-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 0.9rem; }
         .stats-value { font-weight: 800; color: #ffb347; font-size: 1rem; }
         .run-buttons { display: flex; gap: 10px; margin: 12px 0 8px; flex-wrap: wrap; }
-        .run-btn { background: rgba(255,255,255,0.2); border: none; border-radius: 40px; padding: 8px 12px; color: white; font-weight: 600; font-size: 0.8rem; cursor: pointer; flex: 1; text-align: center; transition: 0.2s; }
+        .run-btn { background: rgba(255,255,255,0.2); border: none; border-radius: 40px; padding: 8px 12px; color: white; font-weight: 600; font-size: 0.8rem; cursor: pointer; flex: 1; text-align: center; }
         .run-btn.start { background: #2ecc71; color: #000; }
         .run-btn.pause { background: #f39c12; }
         .run-btn.stop { background: #e67e22; }
         .record-status { font-size: 0.7rem; text-align: center; margin-top: 6px; color: #ddd; }
-        #runStatusIcon { font-size: 0.75rem; text-align: center; margin-top: 8px; color: #fff; font-weight: 500; }
+        #runStatusIcon { font-size: 0.75rem; text-align: center; margin-top: 8px; color: #fff; }
         .collapse-icon { font-size: 1rem; background: rgba(255,255,255,0.2); border-radius: 20px; width: 26px; text-align: center; cursor: pointer; }
-        /* Кнопка воссоединения (сердце) */
         .reunion-btn {
             position: absolute; bottom: 90px; right: 16px; z-index: 35;
-            background: rgba(255, 80, 120, 0.9); backdrop-filter: blur(8px);
+            background: rgba(255,80,120,0.9); backdrop-filter: blur(8px);
             width: 56px; height: 56px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-size: 28px; color: white; cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: 0.2s; border: 1px solid rgba(255,255,255,0.5);
         }
-        .reunion-btn:hover { transform: scale(1.05); background: #ff3366; }
-        /* Модальное окно сообщения */
-        .message-modal {
+        .message-modal, .share-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 2000; display: flex;
-            align-items: center; justify-content: center; backdrop-filter: blur(10px);
+            align-items: center; justify-content: center;
         }
-        .message-card {
-            background: linear-gradient(145deg, #fff9f0, #ffe6f0);
-            border-radius: 48px; width: 340px; max-width: 85%;
-            padding: 28px 24px; text-align: center;
-            box-shadow: 0 25px 40px rgba(0,0,0,0.4);
-            border: 1px solid rgba(255,200,200,0.6);
+        .message-card, .share-card {
+            background: white; border-radius: 36px; width: 320px; padding: 24px; text-align: center;
         }
-        .message-card h2 { color: #c23656; margin-bottom: 16px; font-weight: 700; }
-        .message-card p { margin: 12px 0; font-size: 1rem; line-height: 1.4; color: #2d2d2d; }
-        .ht-id { background: #ffecb3; display: inline-block; padding: 8px 20px; border-radius: 60px; font-weight: bold; font-size: 1.2rem; margin: 12px 0; letter-spacing: 1px; }
-        .copy-btn { background: #c23656; color: white; border: none; padding: 10px 20px; border-radius: 40px; font-weight: bold; margin-top: 12px; cursor: pointer; font-size: 0.9rem; }
-        .close-msg { background: #aaa; margin-top: 16px; }
-        /* Модальное окно шаринга (увеличенный шрифт) */
-        .share-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); z-index: 1000; display: flex;
-            align-items: center; justify-content: center; backdrop-filter: blur(8px);
-        }
-        .share-card { background: white; border-radius: 36px; width: 320px; padding: 24px; text-align: center; }
-        .share-card h3 { font-size: 1.3rem; margin: 10px 0; }
-        .share-card p { font-size: 1rem; margin: 8px 0; }
-        .share-buttons { display: flex; gap: 12px; margin-top: 20px; justify-content: center; }
-        .share-buttons button { background: #1e3c72; color: white; border: none; border-radius: 40px; padding: 10px 18px; font-size: 0.9rem; cursor: pointer; }
+        .ht-id { background: #ffecb3; display: inline-block; padding: 8px 20px; border-radius: 60px; font-weight: bold; margin: 12px 0; }
+        .copy-btn { background: #c23656; color: white; border: none; padding: 10px 20px; border-radius: 40px; margin-top: 12px; cursor: pointer; }
         @media (max-width: 550px) {
-            .route-card { width: 210px; padding: 10px 12px; }
-            .run-panel { width: 210px; padding: 12px 14px; }
-            .app-header { padding: 10px 16px; }
-            .reunion-btn { width: 48px; height: 48px; font-size: 24px; bottom: 80px; right: 12px; }
+            .route-card { width: 210px; }
+            .run-panel { width: 210px; }
         }
-        .leaflet-control-attribution { font-size: 8px; }
     </style>
 </head>
 <body>
 <div id="map"></div>
 
-<!-- Верхняя панель -->
 <div class="app-header">
     <div class="logo-area">
-        <h1><i class="fas fa-sun" style="color:#f4a261;"></i> MoscowRun</h1>
+        <h1><i class="fas fa-sun"></i> MoscowRun</h1>
         <p>Элитный утренний бег · Ритм набережной</p>
     </div>
     <div class="weather-badge">
         <i class="fas fa-cloud-sun"></i>
         <span>Москва · утро 6°C | ясно</span>
-        <i class="fas fa-wind"></i>
     </div>
 </div>
 
-<!-- Карусель маршрутов -->
 <div class="routes-carousel">
     <div class="routes-container" id="routesCardsContainer"></div>
 </div>
 
-<!-- Панель трекера (увеличенный шрифт) -->
 <div class="run-panel" id="runPanel">
     <div class="panel-header" id="dragHandle">
         <span><i class="fas fa-shoe-prints"></i> Реалтайм-бег</span>
-        <span class="collapse-icon" id="togglePanelBtn"><i class="fas fa-angle-down" id="collapseIcon"></i></span>
+        <span class="collapse-icon" id="togglePanelBtn"><i class="fas fa-angle-down"></i></span>
     </div>
     <div class="panel-content">
         <div class="stats-row"><span>🏁 Дистанция</span><span class="stats-value" id="runDistance">0.00 km</span></div>
@@ -164,24 +119,28 @@
             <button class="run-btn pause" id="pauseRunBtn"><i class="fas fa-pause"></i> Пауза</button>
             <button class="run-btn stop" id="stopRunBtn"><i class="fas fa-stop"></i> Финиш</button>
         </div>
-        <div class="record-status" id="recordStatusMsg">📍 Нажмите «Старт», чтобы записать трек</div>
+        <div class="record-status" id="recordStatusMsg">📍 Нажмите «Старт»</div>
         <div id="runStatusIcon"></div>
     </div>
 </div>
 
-<!-- Кнопка-сердце для Виктории -->
-<div class="reunion-btn" id="reunionHeart">
-    <i class="fas fa-heart"></i>
-</div>
+<div class="reunion-btn" id="reunionHeart"><i class="fas fa-heart"></i></div>
 
 <script>
-    // ======================= МАРШРУТЫ (русские) =======================
+    // ========== 地图初始化（使用 OpenStreetMap，俄罗斯可访问）==========
+    const map = L.map('map').setView([55.7517, 37.6178], 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 18
+    }).addTo(map);
+
+    // ========== 路线数据 ==========
     const routesData = [
         {
             id: "moscow_river",
             name: "🌊 Набережная Москвы-реки",
             color: "#2c7da0", highlightColor: "#1f9e7a",
-            description: "От Кремля до Парка Горького, рассвет над рекой, идеальный асфальт.",
+            description: "От Кремля до Парка Горького",
             difficulty: "Лёгкий",
             coords: [[55.7492,37.6150],[55.7478,37.6132],[55.7458,37.6105],[55.7430,37.6086],[55.7403,37.6078],[55.7380,37.6069],[55.7355,37.6058],[55.7328,37.6039],[55.7302,37.6016],[55.7278,37.5992],[55.7302,37.6016],[55.7328,37.6039],[55.7355,37.6058],[55.7380,37.6069],[55.7403,37.6078],[55.7430,37.6086],[55.7458,37.6105],[55.7478,37.6132],[55.7492,37.6150]],
             startPoint: [55.7492,37.6150], endPoint: [55.7278,37.5992]
@@ -190,7 +149,7 @@
             id: "kremlin_ring",
             name: "🏰 Кремлёвское кольцо",
             color: "#bc6c25", highlightColor: "#e9b35f",
-            description: "Вокруг Кремля, Красная площадь, Александровский сад.",
+            description: "Вокруг Кремля",
             difficulty: "Городской",
             coords: [[55.7543,37.6205],[55.7558,37.6180],[55.7545,37.6120],[55.7520,37.6095],[55.7503,37.6138],[55.7498,37.6172],[55.7509,37.6215],[55.7522,37.6230],[55.7543,37.6205]],
             startPoint: [55.7543,37.6205], endPoint: [55.7543,37.6205]
@@ -199,12 +158,13 @@
             id: "sparrow_hills",
             name: "⛰️ Воробьёвы горы",
             color: "#5e8b5e", highlightColor: "#87b38c",
-            description: "Лужники → Смотровая площадка → МГУ, панорама города.",
+            description: "Лужники → МГУ",
             difficulty: "Холмы",
             coords: [[55.7154,37.5533],[55.7125,37.5496],[55.7098,37.5465],[55.7074,37.5422],[55.7058,37.5360],[55.7039,37.5307],[55.7068,37.5355],[55.7085,37.5433],[55.7109,37.5482],[55.7140,37.5520]],
             startPoint: [55.7154,37.5533], endPoint: [55.7039,37.5307]
         }
     ];
+
     function computeRouteDistance(coords) {
         let total = 0; const R = 6371;
         for (let i=0; i<coords.length-1; i++) {
@@ -221,17 +181,15 @@
         r.durationMin = Math.round(r.distanceKm * 7.2);
         r.calories = Math.round(r.distanceKm * 62);
     });
-    // Карта
-    const map = L.map('map').setView([55.7517, 37.6178], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM', subdomains: 'abcd' }).addTo(map);
-    const startIcon = L.divIcon({ html: '<div style="background:#2ecc71; width:22px;height:22px;border-radius:50%;border:2px solid white;text-align:center;"><i class="fas fa-play" style="color:white;font-size:9px;margin-left:1px;"></i></div>', iconSize: [22,22] });
+
+    // 绘制路线
+    const startIcon = L.divIcon({ html: '<div style="background:#2ecc71; width:22px;height:22px;border-radius:50%;border:2px solid white;"><i class="fas fa-play" style="color:white;font-size:9px;"></i></div>', iconSize: [22,22] });
     const endIcon = L.divIcon({ html: '<div style="background:#e67e22; width:22px;height:22px;border-radius:50%;border:2px solid white;"><i class="fas fa-flag-checkered" style="color:white;font-size:9px;"></i></div>', iconSize: [22,22] });
     let routeLayers = [];
     routesData.forEach(route => {
         const poly = L.polyline(route.coords, { color: route.color, weight: 5, opacity: 0.8 }).addTo(map);
-        const startM = L.marker(route.startPoint, { icon: startIcon }).bindTooltip(`🏁 ${route.name} старт`);
-        const endM = L.marker(route.endPoint, { icon: endIcon }).bindTooltip(`🏆 финиш`);
-        startM.addTo(map); endM.addTo(map);
+        L.marker(route.startPoint, { icon: startIcon }).addTo(map);
+        L.marker(route.endPoint, { icon: endIcon }).addTo(map);
         routeLayers.push({ id: route.id, polyline: poly, bounds: L.latLngBounds(route.coords), originalColor: route.color, highlightColor: route.highlightColor });
     });
     function highlightRoute(id) {
@@ -245,18 +203,14 @@
         const card = document.createElement('div'); card.className = 'route-card'; card.dataset.id = route.id;
         card.innerHTML = `<div class="route-name"><span>${route.name}</span><div class="route-badge">${route.difficulty}</div></div>
                           <div class="route-stats"><span><i class="fas fa-ruler"></i> ${route.distanceKm}km</span><span><i class="far fa-clock"></i> ${route.durationMin}мин</span><span><i class="fas fa-fire"></i> ${route.calories}ккал</span></div>
-                          <div class="route-desc"><i class="fas fa-route"></i> ${route.description.substring(0,45)}</div>
+                          <div class="route-desc">${route.description}</div>
                           <div class="btn-start"><i class="fas fa-chevron-right"></i> Показать</div>`;
         card.addEventListener('click', () => highlightRoute(route.id));
         cardsContainer.appendChild(card);
     });
     highlightRoute('moscow_river');
-    [[55.7520,37.6175,"Кремль"],[55.7525,37.6231,"Собор Василия Блаженного"],[55.7356,37.6055,"Парк Горького"]].forEach(l => {
-        L.marker([l[0],l[1]], { icon: L.divIcon({ html: '<i class="fas fa-map-marker-alt" style="color:#c44536;font-size:12px;"></i>', iconSize:[12,12] }) }).bindTooltip(l[2]).addTo(map);
-    });
-    L.control.scale({ metric:true, imperial:false, position:'bottomright' }).addTo(map);
 
-    // ========== ТРЕКЕР БЕГА (с гарантированным показом модалки после финиша) ==========
+    // ========== 跑步追踪器 ==========
     let watchId = null, isRunning = false, isActive = false;
     let startTimestamp = 0, pauseDuration = 0, pauseStartTime = 0;
     let positions = [];
@@ -268,9 +222,19 @@
     const recordStatusMsg = document.getElementById('recordStatusMsg');
     const runStatusIcon = document.getElementById('runStatusIcon');
 
-    function distanceBetween(lat1,lng1,lat2,lng2) { const R = 6371e3; const φ1=lat1*Math.PI/180, φ2=lat2*Math.PI/180; const Δφ=(lat2-lat1)*Math.PI/180, Δλ=(lng2-lng1)*Math.PI/180; const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2; return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); }
-    function totalDistance(points) { if(points.length<2) return 0; let d=0; for(let i=0;i<points.length-1;i++) d+=distanceBetween(points[i].lat,points[i].lng, points[i+1].lat,points[i+1].lng); return d; }
-    
+    function distanceBetween(lat1,lng1,lat2,lng2) {
+        const R = 6371e3;
+        const φ1=lat1*Math.PI/180, φ2=lat2*Math.PI/180;
+        const Δφ=(lat2-lat1)*Math.PI/180, Δλ=(lng2-lng1)*Math.PI/180;
+        const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+    function totalDistance(points) {
+        if(points.length<2) return 0;
+        let d=0;
+        for(let i=0;i<points.length-1;i++) d+=distanceBetween(points[i].lat,points[i].lng, points[i+1].lat,points[i+1].lng);
+        return d;
+    }
     function updateStats() {
         if(!isActive) return;
         const elapsedSec = (Date.now() - startTimestamp - pauseDuration)/1000;
@@ -282,14 +246,12 @@
         runPaceSpan.innerText = paceText; 
         runCaloriesSpan.innerText = Math.floor(distKm*65);
     }
-    
     function updateMapTrace() {
         if(runPolyline) map.removeLayer(runPolyline);
         if(positions.length>=2) { const latlngs = positions.map(p=>[p.lat,p.lng]); runPolyline = L.polyline(latlngs, { color:'#ff5733', weight:5 }).addTo(map); }
         if(currentMarker) map.removeLayer(currentMarker);
-        if(positions.length>0) { const last = positions[positions.length-1]; currentMarker = L.marker([last.lat, last.lng], { icon: L.divIcon({ html:'<div style="background:#ff3b3b;width:18px;height:18px;border-radius:50%;border:2px solid white;"></div>', iconSize:[18,18] }) }).addTo(map).bindTooltip("Текущая позиция"); map.setView([last.lat, last.lng], 15); }
+        if(positions.length>0) { const last = positions[positions.length-1]; currentMarker = L.marker([last.lat, last.lng], { icon: L.divIcon({ html:'<div style="background:#ff3b3b;width:18px;height:18px;border-radius:50%;border:2px solid white;"></div>', iconSize:[18,18] }) }).addTo(map); map.setView([last.lat, last.lng], 15); }
     }
-    
     function onLocationSuccess(pos) {
         if(!isRunning) return;
         const {latitude, longitude} = pos.coords;
@@ -298,85 +260,37 @@
         updateStats(); updateMapTrace();
         recordStatusMsg.innerText = `🏃 Пробежали ${(totalDistance(positions)/1000).toFixed(2)} km`;
     }
-    
     function startRunning() {
         if(isActive && isRunning) return;
         if(!isActive) { 
-            positions = []; 
-            if(runPolyline) map.removeLayer(runPolyline); 
-            if(currentMarker) map.removeLayer(currentMarker); 
-            startTimestamp = Date.now(); 
-            pauseDuration = 0; 
-            isActive = true; 
-            isRunning = true; 
-            updateStats(); 
+            positions = []; if(runPolyline) map.removeLayer(runPolyline); if(currentMarker) map.removeLayer(currentMarker); 
+            startTimestamp = Date.now(); pauseDuration = 0; isActive = true; isRunning = true; updateStats(); 
             runStatusIcon.innerHTML = '🟢 Бег...';
         } else if(isActive && !isRunning) { 
-            if(pauseStartTime>0) pauseDuration += (Date.now()-pauseStartTime); 
-            pauseStartTime=0; 
-            isRunning=true; 
-            runStatusIcon.innerHTML = '🟢 Бег...';
+            if(pauseStartTime>0) pauseDuration += (Date.now()-pauseStartTime); pauseStartTime=0; isRunning=true; runStatusIcon.innerHTML = '🟢 Бег...';
         }
         if(watchId) navigator.geolocation.clearWatch(watchId);
         watchId = navigator.geolocation.watchPosition(onLocationSuccess, (e)=>{recordStatusMsg.innerText=`Ошибка GPS`;}, {enableHighAccuracy:true, maximumAge:1000});
-        recordStatusMsg.innerText = '📍 Запись трека, бегите по набережной';
+        recordStatusMsg.innerText = '📍 Запись трека';
     }
-    
     function pauseRunning() { 
-        if(!isActive || !isRunning) return; 
-        isRunning = false; 
-        pauseStartTime = Date.now(); 
+        if(!isActive || !isRunning) return; isRunning = false; pauseStartTime = Date.now(); 
         if(watchId) { navigator.geolocation.clearWatch(watchId); watchId=null; } 
-        recordStatusMsg.innerText = '⏸️ Пауза, нажмите Старт'; 
-        runStatusIcon.innerHTML = '⏸️ Пауза';
+        recordStatusMsg.innerText = '⏸️ Пауза'; runStatusIcon.innerHTML = '⏸️ Пауза';
     }
-    
-    // Функция показа модалки (гарантированно вызывается после финиша)
     function showShareDialog(dist, timeStr, pace, cal) {
-        // Удаляем старую модалку если есть
-        const oldModal = document.querySelector('.share-modal');
-        if(oldModal) oldModal.remove();
-        
-        const modal = document.createElement('div'); 
-        modal.className = 'share-modal';
-        modal.innerHTML = `<div class="share-card">
-            <i class="fas fa-running" style="font-size:36px; color:#ff7a3c;"></i>
-            <h3>🏅 Утренняя пробежка в Москве</h3>
-            <p>📏 ${dist} km &nbsp; ⏱️ ${timeStr}</p>
-            <p>⚡ Темп ${pace} min/km &nbsp; 🔥 ${cal} ккал</p>
-            <p style="font-size:12px; color:gray;">#МосковскийБег #Набережная</p>
-            <div class="share-buttons">
-                <button id="shareTextBtn">📝 Поделиться текстом</button>
-                <button id="shareImgBtn">📸 Скриншот</button>
-                <button id="closeShareBtn">Закрыть</button>
-            </div>
-        </div>`;
+        const modal = document.createElement('div'); modal.className = 'share-modal';
+        modal.innerHTML = `<div class="share-card"><i class="fas fa-running" style="font-size:36px; color:#ff7a3c;"></i><h3>🏅 Пробежка в Москве</h3><p>📏 ${dist} km &nbsp; ⏱️ ${timeStr}</p><p>⚡ Темп ${pace} min/km &nbsp; 🔥 ${cal} ккал</p><div class="share-buttons"><button id="shareTextBtn">📝 Поделиться</button><button id="shareImgBtn">📸 Скриншот</button><button id="closeShareBtn">Закрыть</button></div></div>`;
         document.body.appendChild(modal);
-        
-        const shareText = `🏃‍♂️ Я пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал 🌅 #МосковскийБег`;
-        
+        const shareText = `🏃‍♂️ Я пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал #МосковскийБег`;
         document.getElementById('shareTextBtn').onclick = async () => { 
-            if(navigator.share) try{ await navigator.share({title:'Моя пробежка', text:shareText}); } catch(e){} 
-            else { await navigator.clipboard.writeText(shareText); alert('Текст скопирован'); } 
-            modal.remove(); 
+            if(navigator.share) try{ await navigator.share({text:shareText}); } catch(e){} else { await navigator.clipboard.writeText(shareText); alert('Текст скопирован'); } modal.remove(); 
         };
         document.getElementById('shareImgBtn').onclick = async () => { 
-            try { 
-                const canvas = await html2canvas(document.getElementById('map'), { scale:1.5, backgroundColor:'#f0f2f5' }); 
-                const imgData = canvas.toDataURL('image/png'); 
-                if(navigator.share && navigator.canShare) { 
-                    const blob = await (await fetch(imgData)).blob(); 
-                    const file = new File([blob], 'moscow_run.png', {type:'image/png'}); 
-                    if(navigator.canShare({files:[file]})) await navigator.share({title:'Скриншот трека', files:[file]}); 
-                    else downloadImg(imgData); 
-                } else { downloadImg(imgData); } 
-            } catch(e) { alert('Ошибка скриншота'); } 
-            modal.remove(); 
+            try { const canvas = await html2canvas(document.getElementById('map')); const imgData = canvas.toDataURL(); const a=document.createElement('a'); a.href=imgData; a.download='run.png'; a.click(); alert('Скриншот сохранён'); } catch(e){} modal.remove(); 
         };
         document.getElementById('closeShareBtn').onclick = () => modal.remove();
-        function downloadImg(data) { const a=document.createElement('a'); a.href=data; a.download='moscow_run.png'; a.click(); alert('Скриншот сохранён'); }
     }
-    
     function stopRunning() {
         if(!isActive) return;
         if(watchId) navigator.geolocation.clearWatch(watchId);
@@ -386,77 +300,40 @@
         const mins = Math.floor(elapsed/60), secs = Math.floor(elapsed%60);
         const pace = (dist>0 && elapsed>0) ? (elapsed/60/dist).toFixed(1) : '0';
         const cal = Math.floor(parseFloat(dist)*65);
-        const timeStr = (mins>0 ? `${mins} мин ` : '') + `${secs} сек`;
-        
-        // ✅ Гарантированно показываем модалку с результатами
-        showShareDialog(dist, timeStr, pace, cal);
-        
-        // Сброс интерфейса
-        runDistanceSpan.innerText='0.00 km'; 
-        runTimeSpan.innerText='00:00'; 
-        runPaceSpan.innerText="0'00\""; 
-        runCaloriesSpan.innerText='0';
-        recordStatusMsg.innerText = '✅ Трек завершён. Нажмите Старт для новой пробежки.';
+        showShareDialog(dist, `${mins} мин ${secs} сек`, pace, cal);
+        runDistanceSpan.innerText='0.00 km'; runTimeSpan.innerText='00:00'; runPaceSpan.innerText="0'00\""; runCaloriesSpan.innerText='0';
+        recordStatusMsg.innerText = '✅ Трек завершён';
         runStatusIcon.innerHTML = '';
-        if(runPolyline) map.removeLayer(runPolyline); 
-        if(currentMarker) map.removeLayer(currentMarker); 
-        positions = [];
-        isActive = false;
-        isRunning = false;
-        startTimestamp = 0;
-        pauseDuration = 0;
-        pauseStartTime = 0;
+        if(runPolyline) map.removeLayer(runPolyline); if(currentMarker) map.removeLayer(currentMarker); 
+        positions = []; isActive = false;
     }
-    
-    document.getElementById('startRunBtn').addEventListener('click', startRunning);
-    document.getElementById('pauseRunBtn').addEventListener('click', pauseRunning);
-    document.getElementById('stopRunBtn').addEventListener('click', stopRunning);
+    document.getElementById('startRunBtn').onclick = startRunning;
+    document.getElementById('pauseRunBtn').onclick = pauseRunning;
+    document.getElementById('stopRunBtn').onclick = stopRunning;
 
-    // ========== ПЕРЕТАСКИВАНИЕ ПАНЕЛИ И СВОРАЧИВАНИЕ ==========
-    const panelEl = document.getElementById('runPanel');
-    const dragHandle = document.getElementById('dragHandle');
-    const collapseBtnPanel = document.getElementById('togglePanelBtn');
-    const collapseIconSpan = document.getElementById('collapseIcon');
-    let isCollapsed = false;
-    collapseBtnPanel.addEventListener('click', (e) => { e.stopPropagation(); isCollapsed = !isCollapsed; if(isCollapsed) { panelEl.classList.add('collapsed'); collapseIconSpan.className = 'fas fa-angle-up'; } else { panelEl.classList.remove('collapsed'); collapseIconSpan.className = 'fas fa-angle-down'; } });
-    let dragging = false, startX, startY, startLeft, startTop;
-    function setPanelPosition(leftPx, topPx) { panelEl.style.left = leftPx + 'px'; panelEl.style.top = topPx + 'px'; panelEl.style.bottom = 'auto'; panelEl.style.right = 'auto'; }
-    function onMouseMove(e) { if (!dragging) return; e.preventDefault(); let clientX = e.touches ? e.touches[0].clientX : e.clientX; let clientY = e.touches ? e.touches[0].clientY : e.clientY; let dx = clientX - startX, dy = clientY - startY; let newLeft = startLeft + dx, newTop = startTop + dy; const maxX = window.innerWidth - panelEl.offsetWidth - 10; const maxY = window.innerHeight - panelEl.offsetHeight - 10; newLeft = Math.min(Math.max(5, newLeft), maxX); newTop = Math.min(Math.max(5, newTop), maxY); setPanelPosition(newLeft, newTop); }
-    function onMouseUp() { if (!dragging) return; dragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); document.removeEventListener('touchmove', onMouseMove); document.removeEventListener('touchend', onMouseUp); map.dragging.enable(); if (map.tap) map.tap.enable(); }
-    function startDrag(e) { if (e.target === collapseBtnPanel || collapseBtnPanel.contains(e.target)) return; e.preventDefault(); dragging = true; let clientX = e.touches ? e.touches[0].clientX : e.clientX; let clientY = e.touches ? e.touches[0].clientY : e.clientY; startX = clientX; startY = clientY; const rect = panelEl.getBoundingClientRect(); startLeft = rect.left; startTop = rect.top; map.dragging.disable(); if (map.tap) map.tap.disable(); document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); document.addEventListener('touchmove', onMouseMove); document.addEventListener('touchend', onMouseUp); }
-    dragHandle.addEventListener('mousedown', startDrag); dragHandle.addEventListener('touchstart', startDrag, { passive: false });
-    collapseBtnPanel.addEventListener('mousedown', e => e.stopPropagation()); collapseBtnPanel.addEventListener('touchstart', e => e.stopPropagation());
-    window.addEventListener('resize', () => map.invalidateSize());
-    if(!navigator.geolocation) recordStatusMsg.innerText = '❌ Геолокация не поддерживается';
+    // 拖拽和折叠逻辑（简化版）
+    const panel = document.getElementById('runPanel');
+    let draging = false, sX, sY, sL, sT;
+    document.getElementById('dragHandle').addEventListener('mousedown', (e) => {
+        if(e.target.closest('#togglePanelBtn')) return;
+        draging = true; sX = e.clientX; sY = e.clientY;
+        const rect = panel.getBoundingClientRect(); sL = rect.left; sT = rect.top;
+        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+        map.dragging.disable();
+    });
+    function onMove(e) { if(!draging) return; let dx = e.clientX - sX, dy = e.clientY - sY; panel.style.left = (sL+dx)+'px'; panel.style.top = (sT+dy)+'px'; panel.style.bottom = 'auto'; panel.style.right = 'auto'; }
+    function onUp() { draging = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); map.dragging.enable(); }
+    let collapsed = false;
+    document.getElementById('togglePanelBtn').onclick = (e) => { e.stopPropagation(); collapsed = !collapsed; if(collapsed) panel.classList.add('collapsed'); else panel.classList.remove('collapsed'); };
 
-    // ======================= СООБЩЕНИЕ ДЛЯ ВИКТОРИИ =======================
-    const reunionBtn = document.getElementById('reunionHeart');
-    function showLoveMessage() {
-        const modalMsg = document.createElement('div');
-        modalMsg.className = 'message-modal';
-        modalMsg.innerHTML = `
-            <div class="message-card">
-                <i class="fas fa-heart" style="font-size:48px; color:#c23656;"></i>
-                <h2>💖 Виктория, это ты?</h2>
-                <p>Привет! Меня зовут <strong>Apheri</strong>.<br>Мы когда-то общались в HelloTalk, но связь прервалась. Я очень скучаю и надеюсь снова тебя найти. Ты любишь бегать по утрам в Москве — и я создал это приложение специально для тебя.</p>
-                <p><strong>Пожалуйста, свяжись со мной!</strong><br>Мой ID в HelloTalk:</p>
-                <div class="ht-id">@u_apheri</div>
-                <button class="copy-btn" id="copyHtId">📋 Скопировать ID</button>
-                <p style="margin-top:16px; font-size:0.85rem;">Если это не Виктория, но ты знаешь её — помоги нам встретиться ❤️</p>
-                <button class="copy-btn close-msg" id="closeMsgBtn">Закрыть</button>
-            </div>
-        `;
-        document.body.appendChild(modalMsg);
-        document.getElementById('copyHtId').onclick = () => { navigator.clipboard.writeText('@u_apheri'); alert('HelloTalk ID скопирован!'); };
-        document.getElementById('closeMsgBtn').onclick = () => modalMsg.remove();
-    }
-    reunionBtn.addEventListener('click', showLoveMessage);
-    setTimeout(() => {
-        if (!localStorage.getItem('msgShown')) {
-            localStorage.setItem('msgShown', 'true');
-            showLoveMessage();
-        }
-    }, 1500);
+    // 爱心消息
+    document.getElementById('reunionHeart').onclick = () => {
+        const m = document.createElement('div'); m.className = 'message-modal';
+        m.innerHTML = `<div class="message-card"><i class="fas fa-heart" style="font-size:48px;color:#c23656;"></i><h2>💖 Виктория, это ты?</h2><p>Apheri ищет тебя! Мой HelloTalk ID:</p><div class="ht-id">@u_apheri</div><button class="copy-btn" id="copyHtId">📋 Копировать</button><button class="copy-btn close-msg" id="closeMsgBtn">Закрыть</button></div>`;
+        document.body.appendChild(m);
+        document.getElementById('copyHtId').onclick = () => { navigator.clipboard.writeText('@u_apheri'); alert('ID скопирован'); };
+        document.getElementById('closeMsgBtn').onclick = () => m.remove();
+    };
 </script>
 </body>
 </html>
