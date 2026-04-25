@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>莫斯科晨跑 · 轨迹记录与分享 | 俄罗斯跑步软件</title>
+    <!-- Leaflet 核心库 (CSS + JS) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- html2canvas 用于分享截图 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- 字体与图标 (Font Awesome 清新风格) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts 现代感 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+            background: #f5f7fe;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* 顶部导航栏 (毛玻璃+晨跑氛围) - 保持初版风格 */
+        .app-header {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255,255,255,0.5);
+            pointer-events: auto;
+        }
+        .logo-area h1 {
+            font-size: 1.45rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e3c72, #2b4c7c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+        .logo-area p {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #4a627a;
+            margin-top: 2px;
+        }
+        .weather-badge {
+            background: rgba(0,0,0,0.05);
+            border-radius: 40px;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1f3b4c;
+        }
+        .weather-badge i {
+            font-size: 1.2rem;
+            color: #f4b942;
+        }
+
+        /* 底部卡片栏: 水平滑动路线选择器 (原版样式) */
+        .routes-carousel {
+            position: absolute;
+            bottom: 20px;
+            left: 16px;
+            right: 16px;
+            z-index: 10;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            padding-bottom: 8px;
+            scrollbar-width: thin;
+            border-radius: 28px;
+            pointer-events: auto;
+        }
+        .routes-container {
+            display: inline-flex;
+            gap: 16px;
+            padding: 8px 4px;
+        }
+        .route-card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(6px);
+            border-radius: 28px;
+            width: 280px;
+            padding: 16px 18px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+            transition: all 0.25s ease;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,240,0.8);
+            white-space: normal;
+            display: inline-block;
+            vertical-align: top;
+        }
+        .route-card.active {
+            background: #ffffff;
+            border-left: 6px solid #ff7a3c;
+            box-shadow: 0 18px 32px rgba(0, 0, 0, 0.18);
+            transform: scale(1.01);
+        }
+        .route-card:hover {
+            transform: translateY(-4px);
+            background: white;
+        }
+        .route-name {
+            font-weight: 800;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .route-name span:first-child {
+            background: linear-gradient(120deg, #1f5e3a, #2c7a4a);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .route-badge {
+            font-size: 0.7rem;
+            background: #eef2ff;
+            padding: 4px 10px;
+            border-radius: 50px;
+            font-weight: 600;
+            color: #2b4c7c;
+        }
+        .route-stats {
+            display: flex;
+            gap: 18px;
+            margin: 12px 0 10px;
+            font-size: 0.8rem;
+            color: #2c3e4e;
+        }
+        .route-stats i {
+            width: 20px;
+            color: #ff7a3c;
+        }
+        .route-desc {
+            font-size: 0.75rem;
+            color: #4b6e8a;
+            line-height: 1.4;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-start {
+            margin-top: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #ff7a3c;
+            text-align: right;
+            letter-spacing: 0.5px;
+        }
+
+        /* 实时跑步数据面板 (新增 - 右下角，毛玻璃与主题融合) */
+        .run-panel {
+            position: absolute;
+            bottom: 110px;
+            right: 16px;
+            left: auto;
+            z-index: 25;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(16px);
+            border-radius: 32px;
+            padding: 16px 20px;
+            width: 260px;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.25);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+            pointer-events: auto;
+            font-weight: 500;
+        }
+        .run-panel .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 0.85rem;
+        }
+        .run-panel .stats-value {
+            font-weight: 700;
+            color: #ffb347;
+        }
+        .run-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+        .run-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 40px;
+            padding: 7px 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.2s;
+            flex: 1;
+            text-align: center;
+        }
+        .run-btn.start {
+            background: #2ecc71;
+            color: #000;
+        }
+        .run-btn.pause {
+            background: #f39c12;
+        }
+        .run-btn.stop {
+            background: #e67e22;
+        }
+        .run-btn.share {
+            background: #3498db;
+        }
+        .run-btn:hover {
+            filter: brightness(0.9);
+            transform: scale(0.97);
+        }
+        .record-status {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 10px;
+            color: #ccc;
+        }
+
+        /* 分享模态框 */
+        .share-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+        .share-card {
+            background: white;
+            border-radius: 40px;
+            width: 320px;
+            max-width: 90%;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 30px 40px rgba(0,0,0,0.3);
+        }
+        .share-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .share-buttons button {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        @media (max-width: 600px) {
+            .run-panel { width: 240px; padding: 12px 16px; bottom: 100px; right: 12px; }
+            .app-header { padding: 8px 16px; }
+            .route-card { width: 260px; }
+        }
+        .leaflet-control-attribution { font-size: 8px; }
+        .custom-marker {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- 顶部栏（保留原版晨跑氛围） -->
+<div class="app-header">
+    <div class="logo-area">
+        <h1><i class="fas fa-sun" style="color:#f4a261;"></i> Moscow Run</h1>
+        <p>精英晨跑 · 河畔韵律</p>
+    </div>
+    <div class="weather-badge">
+        <i class="fas fa-cloud-sun"></i>
+        <span>莫斯科 · 晨间 6°C | 晴 · 优</span>
+        <i class="fas fa-wind"></i>
+    </div>
+</div>
+
+<!-- 底部滑动路线卡片栏（原版） -->
+<div class="routes-carousel">
+    <div class="routes-container" id="routesCardsContainer"></div>
+</div>
+
+<!-- 跑步数据面板（新增：实时轨迹控制与数据） -->
+<div class="run-panel" id="runPanel">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span><i class="fas fa-shoe-prints"></i> 实时晨跑</span>
+        <span id="runStatusIcon" style="font-size:0.7rem;">⚫ 未开始</span>
+    </div>
+    <div class="stats-row">
+        <span>🏁 距离</span>
+        <span class="stats-value" id="runDistance">0.00 km</span>
+    </div>
+    <div class="stats-row">
+        <span>⏱️ 时长</span>
+        <span class="stats-value" id="runTime">00:00</span>
+    </div>
+    <div class="stats-row">
+        <span>⚡ 配速</span>
+        <span class="stats-value" id="runPace">0'00"</span>
+    </div>
+    <div class="stats-row">
+        <span>🔥 卡路里</span>
+        <span class="stats-value" id="runCalories">0</span>
+    </div>
+    <div class="run-buttons">
+        <button class="run-btn start" id="startRunBtn"><i class="fas fa-play"></i> 开跑</button>
+        <button class="run-btn pause" id="pauseRunBtn"><i class="fas fa-pause"></i> 暂停</button>
+        <button class="run-btn stop" id="stopRunBtn"><i class="fas fa-stop"></i> 结束</button>
+    </div>
+    <div class="record-status" id="recordStatusMsg">📍 点击「开跑」，记录你的莫斯科轨迹</div>
+</div>
+
+<script>
+    // ======================= 1. 定义莫斯科市区精美晨跑路线（完全保留初版） =======================
+    const routesData = [
+        {
+            id: "moscow_river",
+            name: "🌊 莫斯科河畔长廊",
+            nameEn: "Moscow River Embankment",
+            color: "#2c7da0",
+            highlightColor: "#1f9e7a",
+            description: "沿莫斯科河精华路段，从克里姆林宫南岸至高尔基公园，朝霞映照河面，晨风轻柔，平坦柏油步道，绝佳观景与历史交融。",
+            distanceKm: 7.2,
+            durationMin: 45,
+            calories: 420,
+            difficulty: "轻松",
+            coords: [
+                [55.7492, 37.6150], [55.7478, 37.6132], [55.7458, 37.6105], [55.7430, 37.6086],
+                [55.7403, 37.6078], [55.7380, 37.6069], [55.7355, 37.6058], [55.7328, 37.6039],
+                [55.7302, 37.6016], [55.7278, 37.5992], [55.7302, 37.6016], [55.7328, 37.6039],
+                [55.7355, 37.6058], [55.7380, 37.6069], [55.7403, 37.6078], [55.7430, 37.6086],
+                [55.7458, 37.6105], [55.7478, 37.6132], [55.7492, 37.6150]
+            ],
+            startPoint: [55.7492, 37.6150],
+            endPoint: [55.7278, 37.5992]
+        },
+        {
+            id: "kremlin_ring",
+            name: "🏰 克里姆林宫荣耀环线",
+            nameEn: "Kremlin Ring & Alexander Garden",
+            color: "#bc6c25",
+            highlightColor: "#e9b35f",
+            description: "环绕世界遗产克里姆林宫城墙，穿越红场边缘与亚历山大花园，晨光中历史回响，古典优雅。",
+            distanceKm: 2.4,
+            durationMin: 18,
+            calories: 150,
+            difficulty: "城市人文",
+            coords: [
+                [55.7543, 37.6205], [55.7558, 37.6180], [55.7545, 37.6120], [55.7520, 37.6095],
+                [55.7503, 37.6138], [55.7498, 37.6172], [55.7509, 37.6215], [55.7522, 37.6230], [55.7543, 37.6205]
+            ],
+            startPoint: [55.7543, 37.6205],
+            endPoint: [55.7543, 37.6205]
+        },
+        {
+            id: "sparrow_hills",
+            name: "⛰️ 麻雀山观景跑道",
+            nameEn: "Sparrow Hills Vista",
+            color: "#5e8b5e",
+            highlightColor: "#87b38c",
+            description: "卢日尼基体育场 → 麻雀山观景台 → 莫斯科大学，俯瞰莫斯科河与城市天际线。",
+            distanceKm: 4.1,
+            durationMin: 32,
+            calories: 280,
+            difficulty: "中等起伏",
+            coords: [
+                [55.7154, 37.5533], [55.7125, 37.5496], [55.7098, 37.5465], [55.7074, 37.5422],
+                [55.7058, 37.5360], [55.7039, 37.5307], [55.7068, 37.5355], [55.7085, 37.5433],
+                [55.7109, 37.5482], [55.7140, 37.5520]
+            ],
+            startPoint: [55.7154, 37.5533],
+            endPoint: [55.7039, 37.5307]
+        }
+    ];
+
+    // 计算精确距离 (用于卡片数据微调)
+    function computeRouteDistance(coords) {
+        let total = 0;
+        const R = 6371;
+        for (let i = 0; i < coords.length - 1; i++) {
+            const lat1 = coords[i][0] * Math.PI / 180, lon1 = coords[i][1] * Math.PI / 180;
+            const lat2 = coords[i+1][0] * Math.PI / 180, lon2 = coords[i+1][1] * Math.PI / 180;
+            const dlat = lat2 - lat1, dlon = lon2 - lon1;
+            const a = Math.sin(dlat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlon/2)**2;
+            total += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+        return total;
+    }
+    routesData.forEach(route => {
+        const realDist = computeRouteDistance(route.coords);
+        route.distanceKm = parseFloat(realDist.toFixed(1));
+        route.durationMin = Math.round(route.distanceKm * 7.2);
+        route.calories = Math.round(route.distanceKm * 62);
+    });
+
+    // 初始化地图 (莫斯科市中心)
+    const map = L.map('map').setView([55.7517, 37.6178], 13);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
+        subdomains: 'abcd',
+        maxZoom: 18,
+    }).addTo(map);
+
+    // 存储路线图层并绘制 (原版样式)
+    let routeLayers = [];
+    const startIcon = L.divIcon({
+        className: 'custom-marker',
+        html: '<div style="background-color: #2ecc71; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 2px solid white;"><i class="fas fa-play" style="color: white; font-size: 10px; margin-left: 2px;"></i></div>',
+        iconSize: [24, 24]
+    });
+    const endIcon = L.divIcon({
+        className: 'custom-marker',
+        html: '<div style="background-color: #e67e22; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 2px solid white;"><i class="fas fa-flag-checkered" style="color: white; font-size: 10px;"></i></div>',
+        iconSize: [24, 24]
+    });
+
+    routesData.forEach(route => {
+        const polyline = L.polyline(route.coords, { color: route.color, weight: 5, opacity: 0.85, smoothFactor: 1.2 }).addTo(map);
+        const startMarker = L.marker(route.startPoint, { icon: startIcon }).bindTooltip(`🏁 ${route.name} 起点`, { sticky: true });
+        const endMarker = L.marker(route.endPoint, { icon: endIcon }).bindTooltip(`🏆 终点 / 折返点`, { sticky: true });
+        startMarker.addTo(map);
+        endMarker.addTo(map);
+        const bounds = L.latLngBounds(route.coords);
+        routeLayers.push({
+            id: route.id,
+            polyline: polyline,
+            markers: [startMarker, endMarker],
+            bounds: bounds,
+            originalColor: route.color,
+            highlightColor: route.highlightColor,
+            routeData: route
+        });
+        polyline.bindPopup(`<strong>🏃 ${route.name}</strong><br>📏 ${route.distanceKm} km · ⏱️ ${route.durationMin} min<br>🔥 约${route.calories} kcal<br><i>${route.description.substring(0,70)}</i>`);
+    });
+
+    function highlightRoute(routeId) {
+        routeLayers.forEach(layer => {
+            layer.polyline.setStyle({ color: layer.originalColor, weight: 5, opacity: 0.85 });
+        });
+        const active = routeLayers.find(l => l.id === routeId);
+        if (active) {
+            active.polyline.setStyle({ color: active.highlightColor, weight: 7, opacity: 1 });
+            map.fitBounds(active.bounds.pad(0.2));
+            document.querySelectorAll('.route-card').forEach(card => {
+                if (card.dataset.id === routeId) card.classList.add('active');
+                else card.classList.remove('active');
+            });
+        }
+    }
+
+    // 构建底部卡片 (沿用初版精美样式)
+    const cardsContainer = document.getElementById('routesCardsContainer');
+    routesData.forEach(route => {
+        const card = document.createElement('div');
+        card.className = 'route-card';
+        card.dataset.id = route.id;
+        let routeIcon = '<i class="fas fa-road"></i>';
+        if (route.id === 'moscow_river') routeIcon = '<i class="fas fa-water" style="color:#2c7da0;"></i>';
+        if (route.id === 'kremlin_ring') routeIcon = '<i class="fas fa-landmark" style="color:#bc6c25;"></i>';
+        if (route.id === 'sparrow_hills') routeIcon = '<i class="fas fa-mountain" style="color:#5e8b5e;"></i>';
+        card.innerHTML = `
+            <div class="route-name"><span>${route.name}</span><div class="route-badge">${route.difficulty}</div></div>
+            <div class="route-stats"><span><i class="fas fa-ruler-combined"></i> ${route.distanceKm} km</span><span><i class="far fa-clock"></i> ${route.durationMin} min</span><span><i class="fas fa-fire"></i> ${route.calories} kcal</span></div>
+            <div class="route-desc">${routeIcon} <span>${route.description.substring(0, 68)}…</span></div>
+            <div class="btn-start"><i class="fas fa-arrow-right"></i> 查看路线</div>
+        `;
+        card.addEventListener('click', (e) => {
+            e.stopPropagation();
+            highlightRoute(route.id);
+            L.popup().setLatLng(route.startPoint).setContent(`✨ 已激活：${route.name} 晨跑路线 ✨`).openOn(map);
+        });
+        cardsContainer.appendChild(card);
+    });
+
+    // 默认高亮莫斯科河路线
+    setTimeout(() => highlightRoute('moscow_river'), 500);
+
+    // 添加莫斯科地标点缀 (保留初版特色)
+    const landmarks = [
+        { name: "克里姆林宫", coords: [55.7520, 37.6175] },
+        { name: "圣瓦西里大教堂", coords: [55.7525, 37.6231] },
+        { name: "高尔基公园", coords: [55.7356, 37.6055] },
+        { name: "基督救世主大教堂", coords: [55.7449, 37.6055] }
+    ];
+    landmarks.forEach(land => {
+        L.marker(land.coords, {
+            icon: L.divIcon({ html: `<i class="fas fa-map-marker-alt" style="color:#c44536; font-size: 16px;"></i>`, iconSize: [16,16] })
+        }).bindTooltip(land.name).addTo(map);
+    });
+    L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(map);
+
+    // ======================= 2. 新增：实时跑步轨迹记录、数据面板、分享功能 =======================
+    let watchId = null;
+    let isRunning = false;      // 是否正在记录位置（未暂停）
+    let isActive = false;       // 会话是否激活（开始后未结束）
+    let startTimestamp = 0;
+    let pauseDuration = 0;
+    let pauseStartTime = 0;
+    let positions = [];         // 存储轨迹点 {lat, lng}
+    let runPolyline = null;
+    let currentMarker = null;
+
+    // DOM 元素
+    const runDistanceSpan = document.getElementById('runDistance');
+    const runTimeSpan = document.getElementById('runTime');
+    const runPaceSpan = document.getElementById('runPace');
+    const runCaloriesSpan = document.getElementById('runCalories');
+    const recordStatusMsg = document.getElementById('recordStatusMsg');
+    const runStatusIcon = document.getElementById('runStatusIcon');
+
+    // 辅助函数：计算两点距离（米）
+    function distanceBetween(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
+        const Δφ = (lat2-lat1)*Math.PI/180;
+        const Δλ = (lon2-lon1)*Math.PI/180;
+        const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function computeTotalDistance(points) {
+        if (points.length < 2) return 0;
+        let dist = 0;
+        for (let i=0; i<points.length-1; i++) {
+            dist += distanceBetween(points[i].lat, points[i].lng, points[i+1].lat, points[i+1].lng);
+        }
+        return dist;
+    }
+
+    function updateStats() {
+        if (!isActive) return;
+        const now = Date.now();
+        let elapsedSec = (now - startTimestamp - pauseDuration) / 1000;
+        if (elapsedSec < 0) elapsedSec = 0;
+        const minutes = Math.floor(elapsedSec / 60);
+        const seconds = Math.floor(elapsedSec % 60);
+        runTimeSpan.innerText = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+        
+        const totalMeters = computeTotalDistance(positions);
+        const distanceKm = totalMeters / 1000;
+        runDistanceSpan.innerText = distanceKm.toFixed(2) + ' km';
+        
+        let paceText = "0'00\"";
+        if (distanceKm > 0 && elapsedSec > 0) {
+            let paceSecPerKm = elapsedSec / distanceKm;
+            let paceMin = Math.floor(paceSecPerKm / 60);
+            let paceSec = Math.floor(paceSecPerKm % 60);
+            paceText = `${paceMin}'${paceSec.toString().padStart(2,'0')}"`;
+        }
+        runPaceSpan.innerText = paceText;
+        const calories = Math.floor(distanceKm * 65);
+        runCaloriesSpan.innerText = calories;
+    }
+
+    function updateMapTrace() {
+        if (runPolyline) map.removeLayer(runPolyline);
+        if (positions.length >= 2) {
+            const latlngs = positions.map(p => [p.lat, p.lng]);
+            runPolyline = L.polyline(latlngs, { color: '#ff5733', weight: 6, opacity: 0.9 }).addTo(map);
+        } else if (positions.length === 1 && runPolyline) {
+            runPolyline = L.polyline([[positions[0].lat, positions[0].lng]], { color: '#ff5733', weight: 5 }).addTo(map);
+        }
+        if (currentMarker) map.removeLayer(currentMarker);
+        if (positions.length > 0) {
+            const last = positions[positions.length-1];
+            currentMarker = L.marker([last.lat, last.lng], {
+                icon: L.divIcon({ html: '<div style="background:#ff3b3b; width:20px;height:20px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px red;"></div>', iconSize: [20,20] })
+            }).addTo(map).bindTooltip("当前位置", {sticky:true});
+            map.setView([last.lat, last.lng], 15);
+        }
+    }
+
+    function onLocationSuccess(position) {
+        if (!isRunning) return;
+        const { latitude, longitude } = position.coords;
+        if (positions.length > 0) {
+            const last = positions[positions.length-1];
+            if (distanceBetween(last.lat, last.lng, latitude, longitude) < 3) return;
+        }
+        positions.push({ lat: latitude, lng: longitude });
+        updateStats();
+        updateMapTrace();
+        recordStatusMsg.innerText = `🏃 记录中 · 已跑 ${(computeTotalDistance(positions)/1000).toFixed(2)} km`;
+    }
+
+    function onLocationError(err) {
+        recordStatusMsg.innerText = `⚠️ 定位失败: ${err.message}`;
+    }
+
+    function startRunning() {
+        if (isActive && isRunning) return;
+        if (!isActive) {
+            positions = [];
+            if (runPolyline) map.removeLayer(runPolyline);
+            if (currentMarker) map.removeLayer(currentMarker);
+            startTimestamp = Date.now();
+            pauseDuration = 0;
+            isActive = true;
+            isRunning = true;
+            updateStats();
+        } else if (isActive && !isRunning) {
+            if (pauseStartTime > 0) {
+                pauseDuration += (Date.now() - pauseStartTime);
+                pauseStartTime = 0;
+            }
+            isRunning = true;
+        }
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        watchId = navigator.geolocation.watchPosition(onLocationSuccess, onLocationError, {
+            enableHighAccuracy: true, maximumAge: 1000, timeout: 5000
+        });
+        runStatusIcon.innerHTML = '🟢 奔跑中';
+        recordStatusMsg.innerText = '📍 轨迹记录启动，沿莫斯科河岸奔跑吧！';
+    }
+
+    function pauseRunning() {
+        if (!isActive || !isRunning) return;
+        isRunning = false;
+        pauseStartTime = Date.now();
+        if (watchId) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+        runStatusIcon.innerHTML = '⏸️ 已暂停';
+        recordStatusMsg.innerText = '⏸️ 暂停记录，可点击“开跑”继续';
+    }
+
+    function stopRunning() {
+        if (!isActive) return;
+        if (watchId) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+        isRunning = false;
+        isActive = false;
+        const totalDist = computeTotalDistance(positions) / 1000;
+        const elapsedSec = (Date.now() - startTimestamp - pauseDuration) / 1000;
+        const mins = Math.floor(elapsedSec / 60);
+        const secs = Math.floor(elapsedSec % 60);
+        const paceValue = totalDist > 0 ? (elapsedSec / 60 / totalDist).toFixed(1) : '0';
+        const calories = Math.floor(totalDist * 65);
+        // 弹出分享对话框
+        showShareSummary(totalDist.toFixed(2), `${mins}分${secs}秒`, paceValue, calories, positions);
+        // 重置展示但保留地图上的轨迹（下次开始会清空）
+        runDistanceSpan.innerText = '0.00 km';
+        runTimeSpan.innerText = '00:00';
+        runPaceSpan.innerText = "0'00\"";
+        runCaloriesSpan.innerText = '0';
+        runStatusIcon.innerHTML = '⚫ 未开始';
+        recordStatusMsg.innerText = '✅ 跑步已结束。点击「开跑」记录新轨迹。';
+        // 不清除地图上的轨迹线，但下次开跑会重置新轨迹（也可以保留但会被覆盖）
+    }
+
+    function showShareSummary(distance, timeStr, paceMin, calories, trackPoints) {
+        const modalDiv = document.createElement('div');
+        modalDiv.className = 'share-modal';
+        modalDiv.innerHTML = `
+            <div class="share-card">
+                <i class="fas fa-running" style="font-size:38px; color:#ff7a3c;"></i>
+                <h3 style="margin:12px 0">🏅 晨跑完成</h3>
+                <p>📏 距离: ${distance} km</p>
+                <p>⏱️ 时长: ${timeStr}</p>
+                <p>⚡ 平均配速: ${paceMin} min/km</p>
+                <p>🔥 消耗: ${calories} kcal</p>
+                <p style="font-size:12px; color:gray;">莫斯科河畔 · 自由轨迹</p>
+                <div class="share-buttons">
+                    <button id="shareTextBtn"><i class="fab fa-twitter"></i> 分享文本</button>
+                    <button id="shareScreenshotBtn"><i class="fas fa-camera"></i> 截图分享</button>
+                    <button id="closeShareBtn" style="background:#aaa;">关闭</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+        const shareText = `🏃‍♂️ 我在【莫斯科晨跑】完成了 ${distance}km 城市晨跑！⏱️ ${timeStr} | 配速 ${paceMin}/km | 🔥 ${calories} kcal 🌅 路线经过莫斯科河畔，呼吸清新空气。#莫斯科晨跑 #俄罗斯跑步`;
+
+        document.getElementById('shareTextBtn').onclick = async () => {
+            if (navigator.share) {
+                try { await navigator.share({ title: '莫斯科晨跑战绩', text: shareText }); } catch(e) {}
+            } else {
+                await navigator.clipboard.writeText(shareText);
+                alert('📋 分享文本已复制到剪贴板，可粘贴到社交平台。');
+            }
+            modalDiv.remove();
+        };
+        document.getElementById('shareScreenshotBtn').onclick = async () => {
+            const mapElement = document.getElementById('map');
+            try {
+                const canvas = await html2canvas(mapElement, { scale: 2, backgroundColor: '#f0f2f5' });
+                const imgData = canvas.toDataURL('image/png');
+                if (navigator.share && navigator.canShare) {
+                    const blob = await (await fetch(imgData)).blob();
+                    const file = new File([blob], 'moscow_run.png', { type: 'image/png' });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({ title: '莫斯科晨跑轨迹', text: shareText, files: [file] });
+                    } else { downloadImage(imgData); }
+                } else { downloadImage(imgData); }
+            } catch(e) { alert('截图失败，可尝试文本分享'); }
+            modalDiv.remove();
+        };
+        function downloadImage(dataUrl) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'moscow_run_track.png';
+            a.click();
+            alert('轨迹截图已保存，可手动分享到社交平台。');
+        }
+        document.getElementById('closeShareBtn').onclick = () => modalDiv.remove();
+    }
+
+    // 绑定按钮事件
+    document.getElementById('startRunBtn').addEventListener('click', startRunning);
+    document.getElementById('pauseRunBtn').addEventListener('click', pauseRunning);
+    document.getElementById('stopRunBtn').addEventListener('click', stopRunning);
+    window.addEventListener('resize', () => map.invalidateSize());
+    if (!("geolocation" in navigator)) recordStatusMsg.innerText = "❌ 浏览器不支持定位";
+</script>
+</body>
+</html>
