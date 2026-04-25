@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>莫斯科晨跑 · 轨迹分享 | 经典界面</title>
+    <title>莫斯科晨跑 · 可拖拽面板 | 轨迹分享</title>
     <!-- Leaflet 核心 -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -62,7 +62,7 @@
             font-weight: 500;
             color: #4a627a;
             margin-top: 2px;
-            display: block;  /* 恢复显示副标题 */
+            display: block;
         }
         .weather-badge {
             background: rgba(0,0,0,0.05);
@@ -148,12 +148,12 @@
             text-align: right;
             color: #ff7a3c;
         }
-        /* 跑步数据面板 (左下角 + 可折叠) */
+        /* 跑步数据面板 (可拖拽 + 可折叠) */
         .run-panel {
             position: absolute;
             bottom: 12px;
             left: 12px;
-            z-index: 25;
+            z-index: 30;
             background: rgba(0, 0, 0, 0.75);
             backdrop-filter: blur(16px);
             border-radius: 28px;
@@ -162,10 +162,13 @@
             color: white;
             border: 1px solid rgba(255,255,255,0.2);
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-            transition: all 0.2s;
+            transition: none; /* 拖拽时无过渡 */
             pointer-events: auto;
             font-size: 0.75rem;
+            cursor: default;
+            user-select: none;
         }
+        /* 拖拽时临时禁用地图指针事件？不，但通过 js 控制地图拖动 */
         .run-panel.collapsed {
             width: auto;
             padding: 8px 12px;
@@ -173,8 +176,9 @@
         }
         .run-panel.collapsed .stats-row,
         .run-panel.collapsed .run-buttons,
-        .run-panel.collapsed .record-status {
-            display: none;
+        .run-panel.collapsed .record-status,
+        .run-panel.collapsed #runStatusIcon {
+            display: none;  /* 最小化时隐藏“未开始”等所有内容 */
         }
         .run-panel.collapsed .panel-header {
             margin-bottom: 0;
@@ -184,7 +188,11 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
-            cursor: pointer;
+            cursor: grab;   /* 可拖拽把手 */
+            user-select: none;
+        }
+        .panel-header:active {
+            cursor: grabbing;
         }
         .stats-row {
             display: flex;
@@ -228,6 +236,13 @@
             border-radius: 20px;
             width: 22px;
             text-align: center;
+            cursor: pointer;
+        }
+        #runStatusIcon {
+            font-size: 0.65rem;
+            text-align: center;
+            margin-top: 6px;
+            color: #eee;
         }
         /* 分享模态框 */
         .share-modal {
@@ -298,11 +313,11 @@
     <div class="routes-container" id="routesCardsContainer"></div>
 </div>
 
-<!-- 跑步数据面板（左下角，可折叠）-->
+<!-- 跑步数据面板（可拖拽+折叠） -->
 <div class="run-panel" id="runPanel">
-    <div class="panel-header" id="togglePanelBtn">
+    <div class="panel-header" id="dragHandle">
         <span><i class="fas fa-shoe-prints"></i> 实时晨跑</span>
-        <span class="collapse-icon"><i class="fas fa-angle-down" id="collapseIcon"></i></span>
+        <span class="collapse-icon" id="togglePanelBtn"><i class="fas fa-angle-down" id="collapseIcon"></i></span>
     </div>
     <div class="panel-content">
         <div class="stats-row">
@@ -327,8 +342,7 @@
             <button class="run-btn stop" id="stopRunBtn"><i class="fas fa-stop"></i> 结束</button>
         </div>
         <div class="record-status" id="recordStatusMsg">📍 点击开跑，记录你的莫斯科轨迹</div>
-        <!-- 状态指示器：奔跑中图标，恢复显示 -->
-        <div id="runStatusIcon" style="font-size:0.65rem; text-align:center; margin-top:6px; color:#eee;"></div>
+        <div id="runStatusIcon"></div>
     </div>
 </div>
 
@@ -459,7 +473,7 @@
     const runPaceSpan = document.getElementById('runPace');
     const runCaloriesSpan = document.getElementById('runCalories');
     const recordStatusMsg = document.getElementById('recordStatusMsg');
-    const runStatusIcon = document.getElementById('runStatusIcon'); // 恢复状态显示
+    const runStatusIcon = document.getElementById('runStatusIcon');
     
     function distanceBetween(lat1,lng1,lat2,lng2) {
         const R = 6371e3;
@@ -526,7 +540,7 @@
             isActive = true;
             isRunning = true;
             updateStats();
-            runStatusIcon.innerHTML = '🟢 奔跑中';  // 显示状态
+            runStatusIcon.innerHTML = '🟢 奔跑中';
         } else if(isActive && !isRunning) {
             if(pauseStartTime>0) pauseDuration += (Date.now()-pauseStartTime);
             pauseStartTime=0;
@@ -558,7 +572,7 @@
         // 重置显示
         runDistanceSpan.innerText='0.00 km'; runTimeSpan.innerText='00:00'; runPaceSpan.innerText="0'00\""; runCaloriesSpan.innerText='0';
         recordStatusMsg.innerText = '✅ 已结束，可重新开跑';
-        runStatusIcon.innerHTML = '⚫ 未开始';
+        runStatusIcon.innerHTML = '';
         if(runPolyline) map.removeLayer(runPolyline);
         if(currentMarker) map.removeLayer(currentMarker);
         positions = [];
@@ -607,21 +621,107 @@
     document.getElementById('pauseRunBtn').addEventListener('click', pauseRunning);
     document.getElementById('stopRunBtn').addEventListener('click', stopRunning);
     
-    // 折叠面板逻辑
-    const panel = document.getElementById('runPanel');
-    const toggleBtn = document.getElementById('togglePanelBtn');
-    const collapseIcon = document.getElementById('collapseIcon');
+    // ======================= 面板折叠 + 可拖拽移动 =======================
+    const panelEl = document.getElementById('runPanel');
+    const dragHandle = document.getElementById('dragHandle');
+    const collapseBtn = document.getElementById('togglePanelBtn');
+    const collapseIconSpan = document.getElementById('collapseIcon');
     let isCollapsed = false;
-    toggleBtn.addEventListener('click', () => {
+    // 折叠逻辑
+    collapseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         isCollapsed = !isCollapsed;
         if(isCollapsed) {
-            panel.classList.add('collapsed');
-            collapseIcon.className = 'fas fa-angle-up';
+            panelEl.classList.add('collapsed');
+            collapseIconSpan.className = 'fas fa-angle-up';
         } else {
-            panel.classList.remove('collapsed');
-            collapseIcon.className = 'fas fa-angle-down';
+            panelEl.classList.remove('collapsed');
+            collapseIconSpan.className = 'fas fa-angle-down';
         }
     });
+    
+    // 拖拽移动 (基于鼠标/触摸)
+    let dragging = false;
+    let startX, startY, startLeft, startTop;
+    // 获取当前 left/top 值 (如果之前没有设置 left/top，就用 getComputedStyle 或初始值)
+    function getPanelPosition() {
+        const style = window.getComputedStyle(panelEl);
+        let left = style.left;
+        let top = style.top;
+        if (left === 'auto' || left === '') left = '12px';
+        if (top === 'auto' || top === '') top = 'auto';
+        return { left: parseFloat(left), top: parseFloat(top), isBottom: style.bottom !== 'auto' };
+    }
+    function setPanelPosition(leftPx, topPx) {
+        panelEl.style.left = leftPx + 'px';
+        panelEl.style.top = topPx + 'px';
+        panelEl.style.bottom = 'auto';
+        panelEl.style.right = 'auto';
+    }
+    function onMouseMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        let clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        let dx = clientX - startX;
+        let dy = clientY - startY;
+        let newLeft = startLeft + dx;
+        let newTop = startTop + dy;
+        // 边界限制（可选）
+        const maxX = window.innerWidth - panelEl.offsetWidth - 10;
+        const maxY = window.innerHeight - panelEl.offsetHeight - 10;
+        newLeft = Math.min(Math.max(5, newLeft), maxX);
+        newTop = Math.min(Math.max(5, newTop), maxY);
+        setPanelPosition(newLeft, newTop);
+    }
+    function onMouseUp() {
+        if (!dragging) return;
+        dragging = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.removeEventListener('touchmove', onMouseMove);
+        document.removeEventListener('touchend', onMouseUp);
+        // 恢复地图拖动
+        map.dragging.enable();
+        if (map.tap) map.tap.enable();
+    }
+    function startDrag(e) {
+        if (e.target === collapseBtn || collapseBtn.contains(e.target)) return; // 点击折叠按钮不拖拽
+        e.preventDefault();
+        dragging = true;
+        let clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        startX = clientX;
+        startY = clientY;
+        const rect = panelEl.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
+        // 临时禁用地图拖拽，防止冲突
+        map.dragging.disable();
+        if (map.tap) map.tap.disable();
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('touchmove', onMouseMove);
+        document.addEventListener('touchend', onMouseUp);
+    }
+    dragHandle.addEventListener('mousedown', startDrag);
+    dragHandle.addEventListener('touchstart', startDrag, { passive: false });
+    // 确保折叠按钮不触发拖拽
+    collapseBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    collapseBtn.addEventListener('touchstart', (e) => e.stopPropagation());
+    
     window.addEventListener('resize', () => map.invalidateSize());
     if(!navigator.geolocation) recordStatusMsg.innerText = '❌ 无定位支持';
 </script>
