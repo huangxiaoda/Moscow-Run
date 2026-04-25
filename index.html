@@ -61,23 +61,23 @@
         .route-stats { display: flex; gap: 12px; margin: 8px 0 4px; font-size: 0.7rem; color: #2c3e4e; }
         .route-desc { font-size: 0.65rem; color: #4b6e8a; display: flex; gap: 5px; align-items: center; }
         .btn-start { margin-top: 6px; font-size: 0.65rem; text-align: right; color: #ff7a3c; }
-        /* Панель бега (перетаскиваемая) */
-        .run-panel { position: absolute; bottom: 12px; left: 12px; z-index: 30; background: rgba(0,0,0,0.75); backdrop-filter: blur(16px); border-radius: 28px; padding: 10px 14px; width: 210px; color: white; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.2); pointer-events: auto; font-size: 0.75rem; user-select: none; }
-        .run-panel.collapsed { width: auto; padding: 8px 12px; background: rgba(0,0,0,0.6); }
+        /* Панель бега (перетаскиваемая) — увеличенный шрифт */
+        .run-panel { position: absolute; bottom: 12px; left: 12px; z-index: 30; background: rgba(0,0,0,0.85); backdrop-filter: blur(16px); border-radius: 28px; padding: 14px 18px; width: 230px; color: white; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 8px 20px rgba(0,0,0,0.3); pointer-events: auto; font-size: 0.9rem; user-select: none; }
+        .run-panel.collapsed { width: auto; padding: 8px 12px; background: rgba(0,0,0,0.7); }
         .run-panel.collapsed .stats-row, .run-panel.collapsed .run-buttons, .run-panel.collapsed .record-status, .run-panel.collapsed #runStatusIcon { display: none; }
         .run-panel.collapsed .panel-header { margin-bottom: 0; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: grab; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: grab; font-size: 0.95rem; font-weight: 600; }
         .panel-header:active { cursor: grabbing; }
-        .stats-row { display: flex; justify-content: space-between; margin: 5px 0; }
-        .stats-value { font-weight: 700; color: #ffb347; }
-        .run-buttons { display: flex; gap: 8px; margin: 10px 0 6px; flex-wrap: wrap; }
-        .run-btn { background: rgba(255,255,255,0.2); border: none; border-radius: 30px; padding: 5px 10px; color: white; font-weight: 600; font-size: 0.7rem; cursor: pointer; flex: 1; text-align: center; }
+        .stats-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 0.9rem; }
+        .stats-value { font-weight: 800; color: #ffb347; font-size: 1rem; }
+        .run-buttons { display: flex; gap: 10px; margin: 12px 0 8px; flex-wrap: wrap; }
+        .run-btn { background: rgba(255,255,255,0.2); border: none; border-radius: 40px; padding: 8px 12px; color: white; font-weight: 600; font-size: 0.8rem; cursor: pointer; flex: 1; text-align: center; transition: 0.2s; }
         .run-btn.start { background: #2ecc71; color: #000; }
         .run-btn.pause { background: #f39c12; }
         .run-btn.stop { background: #e67e22; }
-        .record-status { font-size: 0.6rem; text-align: center; margin-top: 4px; color: #ccc; }
-        #runStatusIcon { font-size: 0.65rem; text-align: center; margin-top: 6px; color: #eee; }
-        .collapse-icon { font-size: 0.9rem; background: rgba(255,255,255,0.2); border-radius: 20px; width: 22px; text-align: center; cursor: pointer; }
+        .record-status { font-size: 0.7rem; text-align: center; margin-top: 6px; color: #ddd; }
+        #runStatusIcon { font-size: 0.75rem; text-align: center; margin-top: 8px; color: #fff; font-weight: 500; }
+        .collapse-icon { font-size: 1rem; background: rgba(255,255,255,0.2); border-radius: 20px; width: 26px; text-align: center; cursor: pointer; }
         /* Кнопка воссоединения (сердце) */
         .reunion-btn {
             position: absolute; bottom: 90px; right: 16px; z-index: 35;
@@ -107,9 +107,20 @@
         .ht-id { background: #ffecb3; display: inline-block; padding: 8px 20px; border-radius: 60px; font-weight: bold; font-size: 1.2rem; margin: 12px 0; letter-spacing: 1px; }
         .copy-btn { background: #c23656; color: white; border: none; padding: 10px 20px; border-radius: 40px; font-weight: bold; margin-top: 12px; cursor: pointer; font-size: 0.9rem; }
         .close-msg { background: #aaa; margin-top: 16px; }
+        /* Модальное окно шаринга (увеличенный шрифт) */
+        .share-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 1000; display: flex;
+            align-items: center; justify-content: center; backdrop-filter: blur(8px);
+        }
+        .share-card { background: white; border-radius: 36px; width: 320px; padding: 24px; text-align: center; }
+        .share-card h3 { font-size: 1.3rem; margin: 10px 0; }
+        .share-card p { font-size: 1rem; margin: 8px 0; }
+        .share-buttons { display: flex; gap: 12px; margin-top: 20px; justify-content: center; }
+        .share-buttons button { background: #1e3c72; color: white; border: none; border-radius: 40px; padding: 10px 18px; font-size: 0.9rem; cursor: pointer; }
         @media (max-width: 550px) {
             .route-card { width: 210px; padding: 10px 12px; }
-            .run-panel { width: 190px; padding: 8px 12px; }
+            .run-panel { width: 210px; padding: 12px 14px; }
             .app-header { padding: 10px 16px; }
             .reunion-btn { width: 48px; height: 48px; font-size: 24px; bottom: 80px; right: 12px; }
         }
@@ -137,7 +148,7 @@
     <div class="routes-container" id="routesCardsContainer"></div>
 </div>
 
-<!-- Панель трекера -->
+<!-- Панель трекера (увеличенный шрифт) -->
 <div class="run-panel" id="runPanel">
     <div class="panel-header" id="dragHandle">
         <span><i class="fas fa-shoe-prints"></i> Реалтайм-бег</span>
@@ -158,7 +169,7 @@
     </div>
 </div>
 
-<!-- Кнопка-сердце для Виктории (послание) -->
+<!-- Кнопка-сердце для Виктории -->
 <div class="reunion-btn" id="reunionHeart">
     <i class="fas fa-heart"></i>
 </div>
@@ -245,7 +256,7 @@
     });
     L.control.scale({ metric:true, imperial:false, position:'bottomright' }).addTo(map);
 
-    // ========== ТРЕКЕР БЕГА ==========
+    // ========== ТРЕКЕР БЕГА (с гарантированным показом модалки после финиша) ==========
     let watchId = null, isRunning = false, isActive = false;
     let startTimestamp = 0, pauseDuration = 0, pauseStartTime = 0;
     let positions = [];
@@ -259,6 +270,7 @@
 
     function distanceBetween(lat1,lng1,lat2,lng2) { const R = 6371e3; const φ1=lat1*Math.PI/180, φ2=lat2*Math.PI/180; const Δφ=(lat2-lat1)*Math.PI/180, Δλ=(lng2-lng1)*Math.PI/180; const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2; return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); }
     function totalDistance(points) { if(points.length<2) return 0; let d=0; for(let i=0;i<points.length-1;i++) d+=distanceBetween(points[i].lat,points[i].lng, points[i+1].lat,points[i+1].lng); return d; }
+    
     function updateStats() {
         if(!isActive) return;
         const elapsedSec = (Date.now() - startTimestamp - pauseDuration)/1000;
@@ -267,14 +279,17 @@
         const distKm = totalDistance(positions)/1000;
         runDistanceSpan.innerText = distKm.toFixed(2)+' km';
         let paceText = "0'00\""; if(distKm>0 && elapsedSec>0) { let paceSec = elapsedSec/distKm; let pm = Math.floor(paceSec/60), ps = Math.floor(paceSec%60); paceText = `${pm}'${ps.toString().padStart(2,'0')}"`; }
-        runPaceSpan.innerText = paceText; runCaloriesSpan.innerText = Math.floor(distKm*65);
+        runPaceSpan.innerText = paceText; 
+        runCaloriesSpan.innerText = Math.floor(distKm*65);
     }
+    
     function updateMapTrace() {
         if(runPolyline) map.removeLayer(runPolyline);
         if(positions.length>=2) { const latlngs = positions.map(p=>[p.lat,p.lng]); runPolyline = L.polyline(latlngs, { color:'#ff5733', weight:5 }).addTo(map); }
         if(currentMarker) map.removeLayer(currentMarker);
         if(positions.length>0) { const last = positions[positions.length-1]; currentMarker = L.marker([last.lat, last.lng], { icon: L.divIcon({ html:'<div style="background:#ff3b3b;width:18px;height:18px;border-radius:50%;border:2px solid white;"></div>', iconSize:[18,18] }) }).addTo(map).bindTooltip("Текущая позиция"); map.setView([last.lat, last.lng], 15); }
     }
+    
     function onLocationSuccess(pos) {
         if(!isRunning) return;
         const {latitude, longitude} = pos.coords;
@@ -283,38 +298,116 @@
         updateStats(); updateMapTrace();
         recordStatusMsg.innerText = `🏃 Пробежали ${(totalDistance(positions)/1000).toFixed(2)} km`;
     }
+    
     function startRunning() {
         if(isActive && isRunning) return;
-        if(!isActive) { positions = []; if(runPolyline) map.removeLayer(runPolyline); if(currentMarker) map.removeLayer(currentMarker); startTimestamp = Date.now(); pauseDuration = 0; isActive = true; isRunning = true; updateStats(); runStatusIcon.innerHTML = '🟢 Бег...'; }
-        else if(isActive && !isRunning) { if(pauseStartTime>0) pauseDuration += (Date.now()-pauseStartTime); pauseStartTime=0; isRunning=true; runStatusIcon.innerHTML = '🟢 Бег...'; }
+        if(!isActive) { 
+            positions = []; 
+            if(runPolyline) map.removeLayer(runPolyline); 
+            if(currentMarker) map.removeLayer(currentMarker); 
+            startTimestamp = Date.now(); 
+            pauseDuration = 0; 
+            isActive = true; 
+            isRunning = true; 
+            updateStats(); 
+            runStatusIcon.innerHTML = '🟢 Бег...';
+        } else if(isActive && !isRunning) { 
+            if(pauseStartTime>0) pauseDuration += (Date.now()-pauseStartTime); 
+            pauseStartTime=0; 
+            isRunning=true; 
+            runStatusIcon.innerHTML = '🟢 Бег...';
+        }
         if(watchId) navigator.geolocation.clearWatch(watchId);
         watchId = navigator.geolocation.watchPosition(onLocationSuccess, (e)=>{recordStatusMsg.innerText=`Ошибка GPS`;}, {enableHighAccuracy:true, maximumAge:1000});
         recordStatusMsg.innerText = '📍 Запись трека, бегите по набережной';
     }
-    function pauseRunning() { if(!isActive || !isRunning) return; isRunning = false; pauseStartTime = Date.now(); if(watchId) { navigator.geolocation.clearWatch(watchId); watchId=null; } recordStatusMsg.innerText = '⏸️ Пауза, нажмите Старт'; runStatusIcon.innerHTML = '⏸️ Пауза'; }
-    function stopRunning() {
-        if(!isActive) return; if(watchId) navigator.geolocation.clearWatch(watchId);
-        isRunning=false; isActive=false;
-        const dist = (totalDistance(positions)/1000).toFixed(2);
-        const elapsed = (Date.now()-startTimestamp-pauseDuration)/1000;
-        const mins = Math.floor(elapsed/60), secs = Math.floor(elapsed%60);
-        const pace = dist>0 ? (elapsed/60/dist).toFixed(1) : '0';
-        const cal = Math.floor(parseFloat(dist)*65);
-        showShareDialog(dist, `${mins} мин ${secs} сек`, pace, cal);
-        runDistanceSpan.innerText='0.00 km'; runTimeSpan.innerText='00:00'; runPaceSpan.innerText="0'00\""; runCaloriesSpan.innerText='0';
-        recordStatusMsg.innerText = '✅ Трек завершён.'; runStatusIcon.innerHTML = '';
-        if(runPolyline) map.removeLayer(runPolyline); if(currentMarker) map.removeLayer(currentMarker); positions = [];
+    
+    function pauseRunning() { 
+        if(!isActive || !isRunning) return; 
+        isRunning = false; 
+        pauseStartTime = Date.now(); 
+        if(watchId) { navigator.geolocation.clearWatch(watchId); watchId=null; } 
+        recordStatusMsg.innerText = '⏸️ Пауза, нажмите Старт'; 
+        runStatusIcon.innerHTML = '⏸️ Пауза';
     }
+    
+    // Функция показа модалки (гарантированно вызывается после финиша)
     function showShareDialog(dist, timeStr, pace, cal) {
-        const modal = document.createElement('div'); modal.className = 'share-modal';
-        modal.innerHTML = `<div class="share-card"><i class="fas fa-running" style="font-size:32px; color:#ff7a3c;"></i><h3>🏅 Утренняя пробежка в Москве</h3><p>📏 ${dist} km &nbsp; ⏱️ ${timeStr}</p><p>⚡ Темп ${pace} min/km &nbsp; 🔥 ${cal} ккал</p><p style="font-size:12px; color:gray;">#МосковскийБег #Набережная</p><div class="share-buttons"><button id="shareTextBtn">📝 Поделиться текстом</button><button id="shareImgBtn">📸 Скриншот</button><button id="closeShareBtn">Закрыть</button></div></div>`;
+        // Удаляем старую модалку если есть
+        const oldModal = document.querySelector('.share-modal');
+        if(oldModal) oldModal.remove();
+        
+        const modal = document.createElement('div'); 
+        modal.className = 'share-modal';
+        modal.innerHTML = `<div class="share-card">
+            <i class="fas fa-running" style="font-size:36px; color:#ff7a3c;"></i>
+            <h3>🏅 Утренняя пробежка в Москве</h3>
+            <p>📏 ${dist} km &nbsp; ⏱️ ${timeStr}</p>
+            <p>⚡ Темп ${pace} min/km &nbsp; 🔥 ${cal} ккал</p>
+            <p style="font-size:12px; color:gray;">#МосковскийБег #Набережная</p>
+            <div class="share-buttons">
+                <button id="shareTextBtn">📝 Поделиться текстом</button>
+                <button id="shareImgBtn">📸 Скриншот</button>
+                <button id="closeShareBtn">Закрыть</button>
+            </div>
+        </div>`;
         document.body.appendChild(modal);
+        
         const shareText = `🏃‍♂️ Я пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал 🌅 #МосковскийБег`;
-        document.getElementById('shareTextBtn').onclick = async () => { if(navigator.share) try{ await navigator.share({title:'Моя пробежка', text:shareText}); } catch(e){} else { await navigator.clipboard.writeText(shareText); alert('Текст скопирован'); } modal.remove(); };
-        document.getElementById('shareImgBtn').onclick = async () => { try { const canvas = await html2canvas(document.getElementById('map'), { scale:1.5, backgroundColor:'#f0f2f5' }); const imgData = canvas.toDataURL('image/png'); if(navigator.share && navigator.canShare) { const blob = await (await fetch(imgData)).blob(); const file = new File([blob], 'moscow_run.png', {type:'image/png'}); if(navigator.canShare({files:[file]})) await navigator.share({title:'Скриншот трека', files:[file]}); else downloadImg(imgData); } else { downloadImg(imgData); } } catch(e) { alert('Ошибка скриншота'); } modal.remove(); };
+        
+        document.getElementById('shareTextBtn').onclick = async () => { 
+            if(navigator.share) try{ await navigator.share({title:'Моя пробежка', text:shareText}); } catch(e){} 
+            else { await navigator.clipboard.writeText(shareText); alert('Текст скопирован'); } 
+            modal.remove(); 
+        };
+        document.getElementById('shareImgBtn').onclick = async () => { 
+            try { 
+                const canvas = await html2canvas(document.getElementById('map'), { scale:1.5, backgroundColor:'#f0f2f5' }); 
+                const imgData = canvas.toDataURL('image/png'); 
+                if(navigator.share && navigator.canShare) { 
+                    const blob = await (await fetch(imgData)).blob(); 
+                    const file = new File([blob], 'moscow_run.png', {type:'image/png'}); 
+                    if(navigator.canShare({files:[file]})) await navigator.share({title:'Скриншот трека', files:[file]}); 
+                    else downloadImg(imgData); 
+                } else { downloadImg(imgData); } 
+            } catch(e) { alert('Ошибка скриншота'); } 
+            modal.remove(); 
+        };
         document.getElementById('closeShareBtn').onclick = () => modal.remove();
         function downloadImg(data) { const a=document.createElement('a'); a.href=data; a.download='moscow_run.png'; a.click(); alert('Скриншот сохранён'); }
     }
+    
+    function stopRunning() {
+        if(!isActive) return;
+        if(watchId) navigator.geolocation.clearWatch(watchId);
+        isRunning=false; 
+        const dist = (totalDistance(positions)/1000).toFixed(2);
+        const elapsed = (Date.now()-startTimestamp-pauseDuration)/1000;
+        const mins = Math.floor(elapsed/60), secs = Math.floor(elapsed%60);
+        const pace = (dist>0 && elapsed>0) ? (elapsed/60/dist).toFixed(1) : '0';
+        const cal = Math.floor(parseFloat(dist)*65);
+        const timeStr = (mins>0 ? `${mins} мин ` : '') + `${secs} сек`;
+        
+        // ✅ Гарантированно показываем модалку с результатами
+        showShareDialog(dist, timeStr, pace, cal);
+        
+        // Сброс интерфейса
+        runDistanceSpan.innerText='0.00 km'; 
+        runTimeSpan.innerText='00:00'; 
+        runPaceSpan.innerText="0'00\""; 
+        runCaloriesSpan.innerText='0';
+        recordStatusMsg.innerText = '✅ Трек завершён. Нажмите Старт для новой пробежки.';
+        runStatusIcon.innerHTML = '';
+        if(runPolyline) map.removeLayer(runPolyline); 
+        if(currentMarker) map.removeLayer(currentMarker); 
+        positions = [];
+        isActive = false;
+        isRunning = false;
+        startTimestamp = 0;
+        pauseDuration = 0;
+        pauseStartTime = 0;
+    }
+    
     document.getElementById('startRunBtn').addEventListener('click', startRunning);
     document.getElementById('pauseRunBtn').addEventListener('click', pauseRunning);
     document.getElementById('stopRunBtn').addEventListener('click', stopRunning);
@@ -358,7 +451,6 @@
         document.getElementById('closeMsgBtn').onclick = () => modalMsg.remove();
     }
     reunionBtn.addEventListener('click', showLoveMessage);
-    // При первом запуске также покажем один раз (не навязчиво, но дружелюбно)
     setTimeout(() => {
         if (!localStorage.getItem('msgShown')) {
             localStorage.setItem('msgShown', 'true');
