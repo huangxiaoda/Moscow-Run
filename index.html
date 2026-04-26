@@ -306,13 +306,11 @@
         if(watchId) { navigator.geolocation.clearWatch(watchId); watchId=null; } 
         recordStatusMsg.innerText = '⏸️ Пауза'; runStatusIcon.innerHTML = '⏸️ Пауза';
     }
-    
-    // ★★★ 4. Поделиться (Telegram, VK, WhatsApp, а также HelloTalk через копирование) ★★★
+        // ★★★ 4. Поделиться (без ID) ★★★
     function showShareDialog(dist, timeStr, pace, cal) {
         const appName = "MoscowRun (Московский Утренний Бег)";
         const appUrl = window.location.href;
-        const hellotalkId = "@u_apheri";
-        const shareText = `🏃‍♂️ ${appName}\nЯ пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал 🌅\nСкачать приложение: ${appUrl}\nМой ID в HelloTalk: ${hellotalkId}\n#МосковскийБег`;
+        const shareText = `🏃‍♂️ ${appName}\nЯ пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал 🌅\nСкачать приложение: ${appUrl}\n#МосковскийБег`;
         const encodedText = encodeURIComponent(shareText);
         const encodedUrl = encodeURIComponent(appUrl);
         const telegramUrl = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
@@ -342,11 +340,11 @@
         `;
         document.body.appendChild(modal);
         
-        // HelloTalk分享：复制包含ID的文本到剪贴板，提示用户打开HelloTalk粘贴
+        // HelloTalk分享：只复制跑步成绩和软件信息，不包含ID
         document.getElementById('shareHelloTalkBtn').onclick = async () => {
-            const hellotalkMsg = `🏃‍♂️ ${appName}\nЯ пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал\nСкачай приложение: ${appUrl}\n\nСвяжись со мной в HelloTalk: ${hellotalkId}`;
+            const hellotalkMsg = `🏃‍♂️ ${appName}\nЯ пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал\nСкачай приложение: ${appUrl}`;
             await navigator.clipboard.writeText(hellotalkMsg);
-            alert('✅ Текст скопирован! Откройте HelloTalk и вставьте сообщение (Ctrl+V / длительное нажатие).\n\n📱 Мой ID: ' + hellotalkId);
+            alert('✅ Текст скопирован! Откройте HelloTalk и вставьте сообщение (Ctrl+V / длительное нажатие).');
             modal.remove();
         };
         
