@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Московский Утренний Бег | Встреча</title>
-    <!-- PWA manifest (встроенный) – для добавления на главный экран -->
+    <!-- PWA manifest -->
     <link rel="manifest" href="data:application/manifest+json,{
         %22name%22:%22Московский Утренний Бег%22,
         %22short_name%22:%22MoscowRun%22,
@@ -17,14 +17,13 @@
         ]
     }">
     <script>
-        // Service Worker 注册 – 使应用可以添加到主屏幕
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});
             if (!window._swRegistered) {
                 const swCode = `self.addEventListener('fetch', event => { event.respondWith(fetch(event.request)); });`;
                 const blob = new Blob([swCode], {type: 'application/javascript'});
                 const url = URL.createObjectURL(blob);
-                navigator.serviceWorker.register(url).then(() => console.log('SW регистрация успешна'));
+                navigator.serviceWorker.register(url);
                 window._swRegistered = true;
             }
         }
@@ -38,7 +37,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { height: 100vh; width: 100%; overflow: hidden; background: #f5f7fe; }
         #map { height: 100%; width: 100%; z-index: 1; }
-        /* Верхняя панель */
         .app-header {
             position: absolute; top: 16px; left: 16px; right: 16px; z-index: 20;
             background: rgba(255,255,255,0.85); backdrop-filter: blur(12px);
@@ -52,7 +50,6 @@
         .logo-area p { font-size: 0.7rem; font-weight: 500; color: #4a627a; margin-top: 2px; }
         .weather-badge { background: rgba(0,0,0,0.05); border-radius: 40px; padding: 6px 14px; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 500; color: #1f3b4c; }
         .weather-badge i { font-size: 1.2rem; color: #f4b942; }
-        /* Карусель маршрутов */
         .routes-carousel { position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 20; overflow-x: auto; white-space: nowrap; padding-bottom: 6px; scrollbar-width: thin; pointer-events: auto; }
         .routes-container { display: inline-flex; gap: 12px; padding: 4px 2px; }
         .route-card { background: rgba(255,255,255,0.96); backdrop-filter: blur(6px); border-radius: 24px; width: 240px; padding: 12px 14px; box-shadow: 0 6px 14px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s; display: inline-block; vertical-align: top; white-space: normal; border-left: 3px solid transparent; }
@@ -62,11 +59,26 @@
         .route-stats { display: flex; gap: 12px; margin: 8px 0 4px; font-size: 0.7rem; color: #2c3e4e; }
         .route-desc { font-size: 0.65rem; color: #4b6e8a; display: flex; gap: 5px; align-items: center; }
         .btn-start { margin-top: 6px; font-size: 0.65rem; text-align: right; color: #ff7a3c; }
-        /* Панель бега (перетаскиваемая, шрифт увеличен) */
-        .run-panel { position: absolute; bottom: 12px; left: 12px; z-index: 30; background: rgba(0,0,0,0.85); backdrop-filter: blur(16px); border-radius: 28px; padding: 14px 18px; width: 230px; color: white; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 8px 20px rgba(0,0,0,0.3); pointer-events: auto; font-size: 0.9rem; user-select: none; }
+        /* Панель бега — с гарантированным перетаскиванием */
+        .run-panel {
+            position: absolute; bottom: 12px; left: 12px; z-index: 30;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(16px);
+            border-radius: 28px; padding: 14px 18px; width: 230px;
+            color: white; border: 1px solid rgba(255,255,255,0.25);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            pointer-events: auto; font-size: 0.9rem; user-select: none;
+            cursor: default;
+        }
         .run-panel.collapsed { width: auto; padding: 8px 12px; background: rgba(0,0,0,0.7); }
-        .run-panel.collapsed .stats-row, .run-panel.collapsed .run-buttons, .run-panel.collapsed .record-status, .run-panel.collapsed #runStatusIcon { display: none; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: grab; font-size: 0.95rem; font-weight: 600; }
+        .run-panel.collapsed .stats-row,
+        .run-panel.collapsed .run-buttons,
+        .run-panel.collapsed .record-status,
+        .run-panel.collapsed #runStatusIcon { display: none; }
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; cursor: grab; font-size: 0.95rem; font-weight: 600;
+        }
+        .panel-header:active { cursor: grabbing; }
         .stats-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 0.9rem; }
         .stats-value { font-weight: 800; color: #ffb347; font-size: 1rem; }
         .run-buttons { display: flex; gap: 10px; margin: 12px 0 8px; flex-wrap: wrap; }
@@ -77,7 +89,6 @@
         .record-status { font-size: 0.7rem; text-align: center; margin-top: 6px; color: #ddd; }
         #runStatusIcon { font-size: 0.75rem; text-align: center; margin-top: 8px; color: #fff; }
         .collapse-icon { font-size: 1rem; background: rgba(255,255,255,0.2); border-radius: 20px; width: 26px; text-align: center; cursor: pointer; }
-        /* Кнопка воссоединения (сердце) */
         .reunion-btn {
             position: absolute; bottom: 90px; right: 16px; z-index: 35;
             background: rgba(255,80,120,0.9); backdrop-filter: blur(8px);
@@ -86,7 +97,7 @@
             font-size: 28px; color: white; cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        /* Сообщение для Виктории (розовый фон) */
+        /* Сообщение для Виктории */
         .message-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 2000; display: flex;
@@ -94,9 +105,8 @@
         }
         .message-card {
             background: linear-gradient(145deg, #fff9f0, #ffe6f0);
-            border-radius: 48px; width: 340px; max-width: 85%;
-            padding: 28px 24px; text-align: center;
-            box-shadow: 0 25px 40px rgba(0,0,0,0.4);
+            border-radius: 48px; width: 340px; max-width: 85%; padding: 28px 24px;
+            text-align: center; box-shadow: 0 25px 40px rgba(0,0,0,0.4);
             border: 1px solid rgba(255,200,200,0.6);
         }
         .message-card h2 { color: #c23656; margin-bottom: 16px; font-weight: 700; font-size: 1.6rem; }
@@ -104,7 +114,7 @@
         .ht-id { background: #ffecb3; display: inline-block; padding: 8px 20px; border-radius: 60px; font-weight: bold; font-size: 1.2rem; margin: 12px 0; color: #a5532b; }
         .copy-btn { background: #c23656; color: white; border: none; padding: 10px 20px; border-radius: 40px; font-weight: bold; margin-top: 12px; cursor: pointer; font-size: 0.9rem; }
         .close-msg { background: #aaa; margin-top: 16px; }
-        /* Модальное окно шаринга */
+        /* Шаринг */
         .share-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 1000; display: flex;
@@ -165,14 +175,14 @@
 <div class="reunion-btn" id="reunionHeart"><i class="fas fa-heart"></i></div>
 
 <script>
-    // ========== 地图 (OpenStreetMap, 俄罗斯可访问) ==========
+    // ========== 1. Карта (OpenStreetMap) ==========
     const map = L.map('map').setView([55.7517, 37.6178], 13);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
         maxZoom: 18
     }).addTo(map);
 
-    // ========== 路线数据 ==========
+    // ========== 2. Маршруты ==========
     const routesData = [
         { id: "moscow_river", name: "🌊 Набережная Москвы-реки", color: "#2c7da0", highlightColor: "#1f9e7a", description: "От Кремля до Парка Горького", difficulty: "Лёгкий",
           coords: [[55.7492,37.6150],[55.7478,37.6132],[55.7458,37.6105],[55.7430,37.6086],[55.7403,37.6078],[55.7380,37.6069],[55.7355,37.6058],[55.7328,37.6039],[55.7302,37.6016],[55.7278,37.5992],[55.7302,37.6016],[55.7328,37.6039],[55.7355,37.6058],[55.7380,37.6069],[55.7403,37.6078],[55.7430,37.6086],[55.7458,37.6105],[55.7478,37.6132],[55.7492,37.6150]],
@@ -228,7 +238,7 @@
     });
     highlightRoute('moscow_river');
 
-    // ========== 跑步追踪器 ==========
+    // ========== 3. Трекер бега ==========
     let watchId = null, isRunning = false, isActive = false;
     let startTimestamp = 0, pauseDuration = 0, pauseStartTime = 0;
     let positions = [];
@@ -297,14 +307,16 @@
         recordStatusMsg.innerText = '⏸️ Пауза'; runStatusIcon.innerHTML = '⏸️ Пауза';
     }
     
-    // ★★★ 分享函数（Telegram / VK / WhatsApp + 文本/截图）★★★
+    // ★★★ 4. Поделиться (с названием приложения и ссылкой) ★★★
     function showShareDialog(dist, timeStr, pace, cal) {
-        const shareText = `🏃‍♂️ Я пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал 🌅 #МосковскийБег`;
-        const currentUrl = encodeURIComponent(window.location.href);
+        const appName = "MoscowRun (Московский Утренний Бег)";
+        const appUrl = window.location.href;
+        const shareText = `🏃‍♂️ ${appName}\nЯ пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал 🌅\nСкачать приложение: ${appUrl}\n#МосковскийБег`;
         const encodedText = encodeURIComponent(shareText);
-        const telegramUrl = `https://t.me/share/url?url=${currentUrl}&text=${encodedText}`;
-        const vkUrl = `https://vk.com/share.php?url=${currentUrl}&title=${encodedText}`;
-        const whatsappUrl = `https://wa.me/?text=${encodedText}%20${currentUrl}`;
+        const encodedUrl = encodeURIComponent(appUrl);
+        const telegramUrl = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
+        const vkUrl = `https://vk.com/share.php?url=${encodedUrl}&title=${encodedText}`;
+        const whatsappUrl = `https://wa.me/?text=${encodedText}%20${encodedUrl}`;
         
         const modal = document.createElement('div');
         modal.className = 'share-modal';
@@ -380,22 +392,76 @@
     document.getElementById('pauseRunBtn').onclick = pauseRunning;
     document.getElementById('stopRunBtn').onclick = stopRunning;
 
-    // ========== Панель: перетаскивание и свёртывание ==========
-    const panel = document.getElementById('runPanel');
-    let draging = false, sX, sY, sL, sT;
-    document.getElementById('dragHandle').addEventListener('mousedown', (e) => {
-        if(e.target.closest('#togglePanelBtn')) return;
-        draging = true; sX = e.clientX; sY = e.clientY;
-        const rect = panel.getBoundingClientRect(); sL = rect.left; sT = rect.top;
-        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+    // ========== 5. Перетаскивание панели (плавное, без конфликтов) ==========
+    const dragPanel = document.getElementById('runPanel');
+    const dragHeader = document.getElementById('dragHandle');
+    let isDragging = false;
+    let dragStartX, dragStartY, dragStartLeft, dragStartTop;
+    
+    function startDrag(e) {
+        if (e.target.closest('#togglePanelBtn')) return;
+        e.preventDefault();
+        isDragging = true;
+        const clientX = e.clientX ?? (e.touches ? e.touches[0].clientX : 0);
+        const clientY = e.clientY ?? (e.touches ? e.touches[0].clientY : 0);
+        dragStartX = clientX;
+        dragStartY = clientY;
+        const rect = dragPanel.getBoundingClientRect();
+        dragStartLeft = rect.left;
+        dragStartTop = rect.top;
+        // Отключаем временно перетаскивание карты
         map.dragging.disable();
-    });
-    function onMove(e) { if(!draging) return; let dx = e.clientX - sX, dy = e.clientY - sY; panel.style.left = (sL+dx)+'px'; panel.style.top = (sT+dy)+'px'; panel.style.bottom = 'auto'; panel.style.right = 'auto'; }
-    function onUp() { draging = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); map.dragging.enable(); }
+        if (map.tap) map.tap.disable();
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', stopDrag);
+        document.addEventListener('touchmove', onDragMove);
+        document.addEventListener('touchend', stopDrag);
+    }
+    
+    function onDragMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        let clientX = e.clientX ?? (e.touches ? e.touches[0].clientX : 0);
+        let clientY = e.clientY ?? (e.touches ? e.touches[0].clientY : 0);
+        let dx = clientX - dragStartX;
+        let dy = clientY - dragStartY;
+        let newLeft = dragStartLeft + dx;
+        let newTop = dragStartTop + dy;
+        // Границы окна
+        const maxX = window.innerWidth - dragPanel.offsetWidth - 10;
+        const maxY = window.innerHeight - dragPanel.offsetHeight - 10;
+        newLeft = Math.min(Math.max(5, newLeft), maxX);
+        newTop = Math.min(Math.max(5, newTop), maxY);
+        dragPanel.style.left = newLeft + 'px';
+        dragPanel.style.top = newTop + 'px';
+        dragPanel.style.bottom = 'auto';
+        dragPanel.style.right = 'auto';
+    }
+    
+    function stopDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup', stopDrag);
+        document.removeEventListener('touchmove', onDragMove);
+        document.removeEventListener('touchend', stopDrag);
+        map.dragging.enable();
+        if (map.tap) map.tap.enable();
+    }
+    
+    dragHeader.addEventListener('mousedown', startDrag);
+    dragHeader.addEventListener('touchstart', startDrag, { passive: false });
+    
+    // Сворачивание
     let collapsed = false;
-    document.getElementById('togglePanelBtn').onclick = (e) => { e.stopPropagation(); collapsed = !collapsed; if(collapsed) panel.classList.add('collapsed'); else panel.classList.remove('collapsed'); };
-
-    // ========== Сообщение для Виктории (розовая карточка) ==========
+    document.getElementById('togglePanelBtn').onclick = (e) => {
+        e.stopPropagation();
+        collapsed = !collapsed;
+        if (collapsed) dragPanel.classList.add('collapsed');
+        else dragPanel.classList.remove('collapsed');
+    };
+    
+    // ========== 6. Сообщение для Виктории ==========
     document.getElementById('reunionHeart').onclick = () => {
         const m = document.createElement('div');
         m.className = 'message-modal';
@@ -416,7 +482,7 @@
         document.getElementById('closeMsgBtn').onclick = () => m.remove();
     };
     
-    // 显示一次提示（可选）
+    // Небольшая подсказка о добавлении на главный экран
     setTimeout(() => {
         if (!localStorage.getItem('msgShown')) {
             localStorage.setItem('msgShown', 'true');
