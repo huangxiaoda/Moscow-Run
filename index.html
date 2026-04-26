@@ -298,18 +298,80 @@
         if(watchId) { navigator.geolocation.clearWatch(watchId); watchId=null; } 
         recordStatusMsg.innerText = '⏸️ Пауза'; runStatusIcon.innerHTML = '⏸️ Пауза';
     }
-    function showShareDialog(dist, timeStr, pace, cal) {
-        const modal = document.createElement('div'); modal.className = 'share-modal';
-        modal.innerHTML = `<div class="share-card"><i class="fas fa-running" style="font-size:36px; color:#ff7a3c;"></i><h3>🏅 Пробежка в Москве</h3><p>📏 ${dist} km &nbsp; ⏱️ ${timeStr}</p><p>⚡ Темп ${pace} min/km &nbsp; 🔥 ${cal} ккал</p><div class="share-buttons"><button id="shareTextBtn">📝 Поделиться</button><button id="shareImgBtn">📸 Скриншот</button><button id="closeShareBtn">Закрыть</button></div></div>`;
+        function showShareDialog(dist, timeStr, pace, cal) {
+        // 构建分享文本
+        const shareText = `🏃‍♂️ Я пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал 🌅 #МосковскийБег`;
+        const currentUrl = encodeURIComponent(window.location.href);
+        const encodedText = encodeURIComponent(shareText);
+        
+        // 各平台分享链接
+        const telegramUrl = `https://t.me/share/url?url=${currentUrl}&text=${encodedText}`;
+        const vkUrl = `https://vk.com/share.php?url=${currentUrl}&title=${encodedText}`;
+        const whatsappUrl = `https://wa.me/?text=${encodedText}%20${currentUrl}`;
+        
+        // 创建模态框
+        const modal = document.createElement('div');
+        modal.className = 'share-modal';
+        modal.innerHTML = `
+            <div class="share-card">
+                <i class="fas fa-running" style="font-size:36px; color:#ff7a3c;"></i>
+                <h3>🏅 Пробежка в Москве</h3>
+                <p>📏 ${dist} km &nbsp; ⏱️ ${timeStr}</p>
+                <p>⚡ Темп ${pace} min/km &nbsp; 🔥 ${cal} ккал</p>
+                <div style="margin: 16px 0; display: flex; justify-content: center; gap: 20px;">
+                    <a href="${telegramUrl}" target="_blank" style="text-decoration: none; font-size: 28px; color: #26A5E4;"><i class="fab fa-telegram"></i></a>
+                    <a href="${vkUrl}" target="_blank" style="text-decoration: none; font-size: 28px; color: #4680C2;"><i class="fab fa-vk"></i></a>
+                    <a href="${whatsappUrl}" target="_blank" style="text-decoration: none; font-size: 28px; color: #25D366;"><i class="fab fa-whatsapp"></i></a>
+                </div>
+                <div class="share-buttons">
+                    <button id="shareTextBtn">📝 Поделиться текстом</button>
+                    <button id="shareImgBtn">📸 Скриншот</button>
+                    <button id="closeShareBtn">Закрыть</button>
+                </div>
+            </div>
+        `;
         document.body.appendChild(modal);
-        const shareText = `🏃‍♂️ Я пробежал ${dist} км по Москве! ⏱️ ${timeStr} | темп ${pace}/км | 🔥 ${cal} ккал #МосковскийБег`;
-        document.getElementById('shareTextBtn').onclick = async () => { 
-            if(navigator.share) try{ await navigator.share({text:shareText}); } catch(e){} else { await navigator.clipboard.writeText(shareText); alert('Текст скопирован'); } modal.remove(); 
+        
+        // 文本分享（使用系统分享或复制）
+        document.getElementById('shareTextBtn').onclick = async () => {
+            if (navigator.share) {
+                try { await navigator.share({ text: shareText }); } catch(e) {}
+            } else {
+                await navigator.clipboard.writeText(shareText);
+                alert('Текст скопирован в буфер обмена');
+            }
+            modal.remove();
         };
-        document.getElementById('shareImgBtn').onclick = async () => { 
-            try { const canvas = await html2canvas(document.getElementById('map')); const imgData = canvas.toDataURL(); const a=document.createElement('a'); a.href=imgData; a.download='run.png'; a.click(); alert('Скриншот сохранён'); } catch(e){} modal.remove(); 
+        
+        // 截图分享
+        document.getElementById('shareImgBtn').onclick = async () => {
+            try {
+                const canvas = await html2canvas(document.getElementById('map'), { scale: 1.5 });
+                const imgData = canvas.toDataURL('image/png');
+                if (navigator.share && navigator.canShare) {
+                    const blob = await (await fetch(imgData)).blob();
+                    const file = new File([blob], 'moscow_run.png', { type: 'image/png' });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({ title: 'Моя пробежка', files: [file] });
+                    } else {
+                        downloadImg(imgData);
+                    }
+                } else {
+                    downloadImg(imgData);
+                }
+            } catch(e) { alert('Ошибка скриншота'); }
+            modal.remove();
         };
+        
         document.getElementById('closeShareBtn').onclick = () => modal.remove();
+        
+        function downloadImg(data) {
+            const a = document.createElement('a');
+            a.href = data;
+            a.download = 'moscow_run.png';
+            a.click();
+            alert('Скриншот сохранён');
+        }
     }
     function stopRunning() {
         if(!isActive) return;
