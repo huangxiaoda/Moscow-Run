@@ -326,11 +326,12 @@
     let collapsed = false;
     document.getElementById('togglePanelBtn').onclick = (e) => { e.stopPropagation(); collapsed = !collapsed; if(collapsed) panel.classList.add('collapsed'); else panel.classList.remove('collapsed'); };
 
-        // 爱心消息（完整版，包含求助他人的语句）
-    document.getElementById('reunionHeart').onclick = () => {
-        const m = document.createElement('div');
-        m.className = 'message-modal';
-        m.innerHTML = `
+       // ======================= СООБЩЕНИЕ ДЛЯ ВИКТОРИИ =======================
+    const reunionBtn = document.getElementById('reunionHeart');
+    function showLoveMessage() {
+        const modalMsg = document.createElement('div');
+        modalMsg.className = 'message-modal';
+        modalMsg.innerHTML = `
             <div class="message-card">
                 <i class="fas fa-heart" style="font-size:48px; color:#c23656;"></i>
                 <h2>💖 Виктория, это ты?</h2>
@@ -342,13 +343,18 @@
                 <button class="copy-btn close-msg" id="closeMsgBtn">Закрыть</button>
             </div>
         `;
-        document.body.appendChild(m);
-        document.getElementById('copyHtId').onclick = () => {
-            navigator.clipboard.writeText('@u_apheri');
-            alert('HelloTalk ID скопирован!');
-        };
-        document.getElementById('closeMsgBtn').onclick = () => m.remove();
-    };
+        document.body.appendChild(modalMsg);
+        document.getElementById('copyHtId').onclick = () => { navigator.clipboard.writeText('@u_apheri'); alert('HelloTalk ID скопирован!'); };
+        document.getElementById('closeMsgBtn').onclick = () => modalMsg.remove();
+    }
+    reunionBtn.addEventListener('click', showLoveMessage);
+    // При первом запуске также покажем один раз (не навязчиво, но дружелюбно)
+    setTimeout(() => {
+        if (!localStorage.getItem('msgShown')) {
+            localStorage.setItem('msgShown', 'true');
+            showLoveMessage();
+        }
+    }, 1500);
 </script>
 </body>
 </html>
