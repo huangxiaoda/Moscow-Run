@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Московский Утренний Бег | Встреча</title>
-    <!-- PWA manifest -->
+    <!-- PWA manifest (встроенный) – для добавления на главный экран -->
     <link rel="manifest" href="data:application/manifest+json,{
         %22name%22:%22Московский Утренний Бег%22,
         %22short_name%22:%22MoscowRun%22,
@@ -37,6 +37,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { height: 100vh; width: 100%; overflow: hidden; background: #f5f7fe; }
         #map { height: 100%; width: 100%; z-index: 1; }
+        /* Верхняя панель */
         .app-header {
             position: absolute; top: 16px; left: 16px; right: 16px; z-index: 20;
             background: rgba(255,255,255,0.85); backdrop-filter: blur(12px);
@@ -50,6 +51,7 @@
         .logo-area p { font-size: 0.7rem; font-weight: 500; color: #4a627a; margin-top: 2px; }
         .weather-badge { background: rgba(0,0,0,0.05); border-radius: 40px; padding: 6px 14px; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 500; color: #1f3b4c; }
         .weather-badge i { font-size: 1.2rem; color: #f4b942; }
+        /* Карусель маршрутов */
         .routes-carousel { position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 20; overflow-x: auto; white-space: nowrap; padding-bottom: 6px; scrollbar-width: thin; pointer-events: auto; }
         .routes-container { display: inline-flex; gap: 12px; padding: 4px 2px; }
         .route-card { background: rgba(255,255,255,0.96); backdrop-filter: blur(6px); border-radius: 24px; width: 240px; padding: 12px 14px; box-shadow: 0 6px 14px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s; display: inline-block; vertical-align: top; white-space: normal; border-left: 3px solid transparent; }
@@ -59,7 +61,7 @@
         .route-stats { display: flex; gap: 12px; margin: 8px 0 4px; font-size: 0.7rem; color: #2c3e4e; }
         .route-desc { font-size: 0.65rem; color: #4b6e8a; display: flex; gap: 5px; align-items: center; }
         .btn-start { margin-top: 6px; font-size: 0.65rem; text-align: right; color: #ff7a3c; }
-        /* Панель бега — с гарантированным перетаскиванием */
+        /* Панель бега — с гарантированным перетаскиванием и ограничением границ */
         .run-panel {
             position: absolute; bottom: 12px; left: 12px; z-index: 30;
             background: rgba(0,0,0,0.85); backdrop-filter: blur(16px);
@@ -89,6 +91,7 @@
         .record-status { font-size: 0.7rem; text-align: center; margin-top: 6px; color: #ddd; }
         #runStatusIcon { font-size: 0.75rem; text-align: center; margin-top: 8px; color: #fff; }
         .collapse-icon { font-size: 1rem; background: rgba(255,255,255,0.2); border-radius: 20px; width: 26px; text-align: center; cursor: pointer; }
+        /* Кнопка воссоединения */
         .reunion-btn {
             position: absolute; bottom: 90px; right: 16px; z-index: 35;
             background: rgba(255,80,120,0.9); backdrop-filter: blur(8px);
@@ -392,13 +395,28 @@
     document.getElementById('pauseRunBtn').onclick = pauseRunning;
     document.getElementById('stopRunBtn').onclick = stopRunning;
 
-    // ========== 5. Перетаскивание панели (плавное, без конфликтов) ==========
+    // ========== 5. Перетаскивание панели с ограничением границ (чтобы не уезжала за край) ==========
     const dragPanel = document.getElementById('runPanel');
     const dragHeader = document.getElementById('dragHandle');
     let isDragging = false;
     let dragStartX, dragStartY, dragStartLeft, dragStartTop;
     
+    // Функция обновления границ (учитывает текущий размер панели)
+    function clampPosition(left, top) {
+        const panelWidth = dragPanel.offsetWidth;
+        const panelHeight = dragPanel.offsetHeight;
+        const maxLeft = window.innerWidth - panelWidth - 8;
+        const maxTop = window.innerHeight - panelHeight - 8;
+        const minLeft = 8;
+        const minTop = 8;
+        return {
+            left: Math.min(maxLeft, Math.max(minLeft, left)),
+            top: Math.min(maxTop, Math.max(minTop, top))
+        };
+    }
+    
     function startDrag(e) {
+        // Если кликнули на кнопку сворачивания — не перетаскиваем
         if (e.target.closest('#togglePanelBtn')) return;
         e.preventDefault();
         isDragging = true;
@@ -409,7 +427,7 @@
         const rect = dragPanel.getBoundingClientRect();
         dragStartLeft = rect.left;
         dragStartTop = rect.top;
-        // Отключаем временно перетаскивание карты
+        // Отключаем перетаскивание карты на время
         map.dragging.disable();
         if (map.tap) map.tap.disable();
         document.addEventListener('mousemove', onDragMove);
@@ -427,13 +445,10 @@
         let dy = clientY - dragStartY;
         let newLeft = dragStartLeft + dx;
         let newTop = dragStartTop + dy;
-        // Границы окна
-        const maxX = window.innerWidth - dragPanel.offsetWidth - 10;
-        const maxY = window.innerHeight - dragPanel.offsetHeight - 10;
-        newLeft = Math.min(Math.max(5, newLeft), maxX);
-        newTop = Math.min(Math.max(5, newTop), maxY);
-        dragPanel.style.left = newLeft + 'px';
-        dragPanel.style.top = newTop + 'px';
+        // Применяем ограничения, чтобы панель всегда была в видимой области
+        const clamped = clampPosition(newLeft, newTop);
+        dragPanel.style.left = clamped.left + 'px';
+        dragPanel.style.top = clamped.top + 'px';
         dragPanel.style.bottom = 'auto';
         dragPanel.style.right = 'auto';
     }
@@ -459,7 +474,21 @@
         collapsed = !collapsed;
         if (collapsed) dragPanel.classList.add('collapsed');
         else dragPanel.classList.remove('collapsed');
+        // После сворачивания/разворачивания обновляем позицию, чтобы не выходила за границы
+        const rect = dragPanel.getBoundingClientRect();
+        const clamped = clampPosition(rect.left, rect.top);
+        dragPanel.style.left = clamped.left + 'px';
+        dragPanel.style.top = clamped.top + 'px';
     };
+    
+    // При изменении размера окна тоже проверяем границы
+    window.addEventListener('resize', () => {
+        const rect = dragPanel.getBoundingClientRect();
+        const clamped = clampPosition(rect.left, rect.top);
+        dragPanel.style.left = clamped.left + 'px';
+        dragPanel.style.top = clamped.top + 'px';
+        map.invalidateSize();
+    });
     
     // ========== 6. Сообщение для Виктории ==========
     document.getElementById('reunionHeart').onclick = () => {
@@ -482,7 +511,7 @@
         document.getElementById('closeMsgBtn').onclick = () => m.remove();
     };
     
-    // Небольшая подсказка о добавлении на главный экран
+    // Небольшое напоминание о добавлении на главный экран (один раз)
     setTimeout(() => {
         if (!localStorage.getItem('msgShown')) {
             localStorage.setItem('msgShown', 'true');
