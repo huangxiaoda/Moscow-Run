@@ -494,26 +494,20 @@
         else dragPanel.classList.remove('collapsed');
     };
     
-    // ========== 6. Сообщение для Виктории ==========
-    document.getElementById('reunionHeart').onclick = () => {
-        const m = document.createElement('div');
-        m.className = 'message-modal';
-        m.innerHTML = `
-            <div class="message-card">
-                <i class="fas fa-heart" style="font-size:48px; color:#c23656;"></i>
-                <h2>💖 Виктория, это ты?</h2>
-                <p>Привет! Меня зовут <strong>Apheri</strong>.<br>Мы когда-то общались в HelloTalk, но связь прервалась. Я очень скучаю и надеюсь снова тебя найти. Ты любишь бегать по утрам в Москве — и я создал это приложение специально для тебя.</p>
-                <p><strong>Пожалуйста, свяжись со мной!</strong><br>Мой ID в HelloTalk:</p>
-                <div class="ht-id">@u_apheri</div>
-                <button class="copy-btn" id="copyHtId">📋 Скопировать ID</button>
-                <p style="margin-top:16px; font-size:0.85rem;">Если это не Виктория, но ты знаешь её — помоги нам встретиться ❤️</p>
-                <button class="copy-btn close-msg" id="closeMsgBtn">Закрыть</button>
-            </div>
-        `;
-        document.body.appendChild(m);
-        document.getElementById('copyHtId').onclick = () => { navigator.clipboard.writeText('@u_apheri'); alert('HelloTalk ID скопирован!'); };
-        document.getElementById('closeMsgBtn').onclick = () => m.remove();
-    };
+   // ========== 6. Сообщение для Виктории ==========
+document.getElementById('reunionHeart').onclick = () => {
+    const m = document.createElement('div');
+    m.className = 'message-modal';
+    m.innerHTML = `
+        <div class="message-card">
+            <i class="fas fa-heart" style="font-size:48px; color:#c23656;"></i>
+            <h2>🌅 Каждое утро, когда я просыпаюсь, первое, что я хочу сделать — это сказать тебе «Доброе утро». Я люблю тебя.</h2>
+            <button class="copy-btn close-msg" id="closeMsgBtn">Закрыть</button>
+        </div>
+    `;
+    document.body.appendChild(m);
+    document.getElementById('closeMsgBtn').onclick = () => m.remove();
+};
     
     setTimeout(() => {
         if (!localStorage.getItem('msgShown')) {
